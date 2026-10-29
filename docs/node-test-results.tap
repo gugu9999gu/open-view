@@ -1,0 +1,50 @@
+
+> open-view@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: route patterns preserve dynamic parameters
+ok 1 - route patterns preserve dynamic parameters
+  ---
+  duration_ms: 1.039603
+  type: 'test'
+  ...
+# Subtest: scanner links cross-file function declarations without executing source
+ok 2 - scanner links cross-file function declarations without executing source
+  ---
+  duration_ms: 53.261088
+  type: 'test'
+  ...
+# Subtest: hidden secrets and symlinks are excluded
+ok 3 - hidden secrets and symlinks are excluded
+  ---
+  duration_ms: 6.706704
+  type: 'test'
+  ...
+# Subtest: bounded traversal reports truncation rather than completeness
+ok 4 - bounded traversal reports truncation rather than completeness
+  ---
+  duration_ms: 2.752518
+  type: 'test'
+  ...
+# Subtest: literal data alone is not classified as mock
+ok 5 - literal data alone is not classified as mock
+  ---
+  duration_ms: 2.657435
+  type: 'test'
+  ...
+# Subtest: loopback host allowlist rejects DNS rebinding hosts
+ok 6 - loopback host allowlist rejects DNS rebinding hosts
+  ---
+  duration_ms: 0.227281
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 467.437111

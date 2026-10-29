@@ -2,14 +2,15 @@
   "name": "open-view",
   "version": "0.1.0",
   "private": true,
-  "description": "Local-first visual project explorer: pages, source files, functions and execution evidence.",
+  "description": "Local-first visual project explorer — design prototype and bounded static scanner.",
   "type": "module",
-  "engines": { "node": ">=22" },
+  "engines": {"node": ">=22"},
   "scripts": {
     "start": "node server.mjs",
     "test": "node --test test/*.test.mjs",
     "harness:status": "leerness status .",
     "harness:verify": "leerness verify ."
   },
-  "devDependencies": { "leerness": "1.36.305" }
+  "dependencies": {"typescript": "5.8.3"},
+  "devDependencies": {"leerness": "1.36.305"}
 }

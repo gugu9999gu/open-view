@@ -1,0 +1,27 @@
+{
+  "checks": [
+    "HTTP: unauthenticated graph request rejected",
+    "HTTP: authenticated AST graph returned",
+    "HTTP: untrusted Origin rejected",
+    "HTTP: untrusted Host rejected",
+    "HTTP: arbitrary file not exposed",
+    "UI: embedded page click produces six SIMULATED trace steps",
+    "UI: mock fallback explicitly labeled fixture",
+    "UI: error scenario reports ERROR",
+    "UI: actual AST response rendered through injected test transport",
+    "UI: static findings do not mix DEMO resources",
+    "UI: route switching",
+    "UI: search and reset",
+    "UI: canvas zoom",
+    "UI: labeled graph JSON export",
+    "UI: no uncaught browser exceptions"
+  ],
+  "passed": 15,
+  "browser": "Chromium",
+  "viewport": "1920x1200",
+  "limitations": [
+    "UI loaded with set_content. Browser-network E2E not tested because container browser navigation is policy-restricted.",
+    "API HTTP transport tested separately with urllib.",
+    "Only Linux execution tested; runtime instrumentation is not implemented."
+  ]
+}

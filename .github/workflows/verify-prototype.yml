@@ -1,0 +1,77 @@
+name: Verify Open View prototype
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'package.json'
+      - 'server.mjs'
+      - 'lib/**'
+      - 'test/**'
+      - 'public/**'
+      - '.github/workflows/verify-prototype.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: open-view-prototype-validation
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      LEERNESS_OFFLINE: '1'
+      LEERNESS_NO_PATH_CHECK: '1'
+      LEERNESS_NO_STALE_CHECK: '1'
+      LEERNESS_NO_DRIFT_CHECK: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Normalize initial source transfer only
+        shell: python
+        run: |
+          import hashlib
+          from pathlib import Path
+          p = Path('public/index.html')
+          b = p.read_bytes()
+          blob_sha = hashlib.sha1(b'blob ' + str(len(b)).encode() + b'\0' + b).hexdigest()
+          # One-time correction of a duplicated CSS-template brace in the initial import.
+          # Subsequent authored versions are not rewritten by this step.
+          if blob_sha == '3644e4320e97823dcbc094e20bf37dc8d768d137':
+              s = b.decode().replace("${esc(e.kind||'static')}}\"", "${esc(e.kind||'static')}\"")
+              assert hashlib.sha256(s.encode()).hexdigest() == '12ea66ba03c931a019b5e5ca59fd2eec0eb4738cfe2aaa23103c1898484dafa6'
+              p.write_text(s)
+      - name: Resolve pinned dependencies and lockfile
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Check server and embedded UI syntax
+        run: |
+          node --check server.mjs
+          python - <<'PY'
+          from pathlib import Path
+          html = Path('public/index.html').read_text()
+          script = html.split('<script>', 1)[1].rsplit('</script>', 1)[0]
+          Path('/tmp/open-view-ui-check.js').write_text(script)
+          PY
+          node --check /tmp/open-view-ui-check.js
+      - name: Run actual Node tests
+        run: npm test
+      - name: Verify installed leerness harness
+        run: npm run harness:verify
+      - name: Commit lockfile and normalized source when changed
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add package-lock.json public/index.html
+          if ! git diff --cached --quiet; then
+            git commit -m 'chore: lock dependencies and verify imported prototype source'
+            git push
+          fi
+      - name: Archive tracked source including generated leerness configuration
+        run: git archive --format=zip --prefix=open-view/ -o /tmp/open-view-source.zip HEAD
+      - uses: actions/upload-artifact@v4
+        with:
+          name: open-view-source
+          path: /tmp/open-view-source.zip
+          retention-days: 14

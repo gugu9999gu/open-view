@@ -1,0 +1,13 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import {scanProject,routePattern} from '../lib/scanner.mjs';
+import {authorizedHost} from '../server.mjs';
+test('route patterns preserve dynamic parameters',()=>{assert.equal(routePattern('src/app/(admin)/orders/[id]/page.tsx'),'/orders/[id]');assert.equal(routePattern('pages/index.tsx'),'/');assert.equal(routePattern('pages/api/save.ts'),null);assert.equal(routePattern('app/@modal/page.tsx'),null);});
+test('scanner links cross-file function declarations without executing source',async()=>{const g=await scanProject(path.resolve('examples/demo-project'));assert(g.nodes.some(n=>n.label==='handleSave'));const lookup=id=>g.nodes.find(n=>n.id===id);assert(g.edges.some(e=>e.kind==='calls'&&lookup(e.source).label==='handleSave'&&lookup(e.target).label==='saveCustomer'));assert(g.edges.some(e=>e.kind==='handler:onClick'));assert(g.findings.some(f=>f.kind==='sample-candidate'));assert.equal(g.coverage.runtime,'not-instrumented');assert(g.edges.every(e=>e.basis==='static'));});
+test('hidden secrets and symlinks are excluded',async()=>{const d=await fs.mkdtemp(path.join(os.tmpdir(),'open-view-'));try{await fs.writeFile(path.join(d,'.env'),'SECRET=do-not-read');await fs.writeFile(path.join(d,'x.ts'),'export function safe() { return 1; }');await fs.symlink(path.join(d,'x.ts'),path.join(d,'link.ts'));const g=await scanProject(d);assert.equal(g.coverage.files,1);assert(!JSON.stringify(g).includes('do-not-read'));assert(g.notices.some(n=>n.kind==='symlink-skipped'));}finally{await fs.rm(d,{recursive:true,force:true});}});
+test('bounded traversal reports truncation rather than completeness',async()=>{const g=await scanProject(path.resolve('examples/demo-project'),{maxFiles:1});assert.equal(g.coverage.files,1);assert.equal(g.coverage.truncated,true);});
+test('literal data alone is not classified as mock',async()=>{const d=await fs.mkdtemp(path.join(os.tmpdir(),'open-view-'));try{await fs.writeFile(path.join(d,'constants.ts'),'export const statuses = ["open", "closed"];');assert.equal((await scanProject(d)).findings.length,0);}finally{await fs.rm(d,{recursive:true,force:true});}});
+test('loopback host allowlist rejects DNS rebinding hosts',()=>{assert(authorizedHost('127.0.0.1:4317',4317));assert(authorizedHost('localhost:4317',4317));assert(!authorizedHost('attacker.invalid:4317',4317));});

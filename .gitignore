@@ -14,3 +14,12 @@ credentials.json
 .leerness/incidents/
 .leerness/cache/agent-sessions/
 .leerness/cache/agent-runs/
+
+# Open View local-only runtime and development outputs
+node_modules/
+.open-view/
+.env.*
+!.env.example
+*.log
+__pycache__/
+.DS_Store
