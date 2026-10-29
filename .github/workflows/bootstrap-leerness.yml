@@ -1,0 +1,43 @@
+name: Initialize leerness
+on:
+  push:
+    paths:
+      - '.github/workflows/bootstrap-leerness.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: initialize-leerness
+  cancel-in-progress: false
+jobs:
+  initialize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      LEERNESS_OFFLINE: '1'
+      LEERNESS_NO_PATH_CHECK: '1'
+      LEERNESS_NO_STALE_CHECK: '1'
+      LEERNESS_NO_DRIFT_CHECK: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned development dependency
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Initialize Korean minimal harness
+        run: npx --no-install leerness init . --minimal --language ko --yes --no-setup-agents --no-mcp --no-auto-roadmap --no-official-skills --no-banner
+      - name: Verify generated harness
+        run: npx --no-install leerness verify .
+      - name: Commit generated project-local configuration
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add package.json package-lock.json
+          for item in AGENTS.md CLAUDE.md .gitignore .harness .leerness .claude .agents .codex; do
+            if [ -e "$item" ]; then git add -- "$item"; fi
+          done
+          if ! git diff --cached --quiet; then
+            git commit -m 'chore: install and verify leerness 1.36.305 minimal Korean harness'
+            git push
+          fi
