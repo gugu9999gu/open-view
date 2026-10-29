@@ -16,6 +16,8 @@ async def main():
     OUT.mkdir(parents=True, exist_ok=True)
     report = {'scope': 'real-react-vite-postgresql-browser-e2e', 'commit': os.environ.get('GITHUB_SHA'), 'status': 'failed', 'checks': []}
     server = browser = None
+    source_file = ROOT / 'examples/runtime-app/src/main.jsx'
+    original_source = source_file.read_text()
     prefix = 'browser-' + uuid.uuid4().hex
     async def db_count(name):
         script = "import pg from 'pg'; const p=new pg.Pool({connectionString:process.env.OPEN_VIEW_EXAMPLE_DATABASE_URL});try{const r=await p.query('SELECT COUNT(*)::int AS count FROM open_view_runtime_examples WHERE name=$1',[process.argv[1]]);console.log(r.rows[0].count);}finally{await p.end();}"
@@ -63,6 +65,7 @@ async def main():
                     await asyncio.sleep(.1)
                 raise AssertionError('Complete observed action traces were not received')
             actions=0
+            historical = None
             for scenario in ['success','rollback','after-commit','fixture']:
                 name=prefix+'-'+scenario
                 await page.get_by_label('예제 이름').fill(name)
@@ -81,6 +84,15 @@ async def main():
                 assert set(['action','function','http.client','http.server','db.query','db.transaction']).issubset({event['kind'] for event in detail['events']})
                 if scenario=='fixture': assert any(event['kind']=='fallback' and event['outcome']['dataOrigin']=='fixture' for event in detail['events'])
                 if scenario=='after-commit': assert any(event['name']=='createCustomer' and event['outcome']['business']=='failed' for event in detail['events'])
+                mappings=detail['sourceGraph']['mappings']
+                required=['Save customer','handleSaveCustomer','createCustomer']
+                if scenario=='fixture': required.append('returnFixture')
+                if scenario=='after-commit': required.append('invalidateCustomerCache')
+                for label in required:
+                    span=next(event for event in detail['events'] if event['name']==label)
+                    match=next(item for item in mappings if item['spanId']==span['spanId'])
+                    assert match['status']=='linked', (label, match)
+                if scenario=='success': historical=detail
                 report['checks'].append('real click + independent DB + trace: '+scenario)
             await page.get_by_label('실행 시나리오').select_option('success')
             await page.get_by_label('예제 이름').fill(prefix+'-concurrent')
@@ -118,6 +130,20 @@ async def main():
             await expect(ui.locator('#inspector')).to_be_hidden()
             await expect(ui.locator('#routeNav')).to_be_hidden()
             await expect(ui.locator('.project-title')).to_be_hidden()
+            # Exact runtime refs must match the independently scanned original source definitions.
+            static_graph=await api('/api/graph')
+            definitions={node['id']:node for node in static_graph['nodes'] if node['kind']=='function'}
+            for node in historical['sourceGraph']['nodes']:
+                assert node['id'] in definitions
+                assert node['sourceRef']['moduleVersion']==definitions[node['id']]['sourceRef']['moduleVersion']
+                assert node['sourceRef']['start']==definitions[node['id']]['sourceRef']['start']
+            report['checks'].append('browser and Node manifest refs exactly match independently scanned AST definitions')
+            await expect(ui.get_by_role('region',name='실행 소스 그래프')).to_be_visible()
+            await ui.locator('.source-node').filter(has_text='handleSaveCustomer').click()
+            await expect(ui.locator('.source-code')).to_contain_text("handler.fetch('/api/customers'")
+            await expect(ui.locator('.source-node.observed.selected')).to_have_count(1)
+            await expect(ui.get_by_role('region',name='실행 당시 소스')).to_contain_text('src/main.jsx:')
+            report['checks'].append('OBSERVED graph highlights verified nodes and opens original code without DEMO/current-source substitution')
             await ui.screenshot(path=str(OUT/'observed-runtime.png'),full_page=True)
             await page.screenshot(path=str(OUT/'react-example.png'),full_page=True)
             await ui.locator('[data-view="graph"]').click()
@@ -130,11 +156,50 @@ async def main():
             denied=await ui.evaluate("""async token => (await fetch('/api/traces',{headers:{Authorization:'Bearer '+token}})).status""",bootstrap['relaySession'])
             assert denied==401
             report['checks'].append('no auth cookies; browser relay token cannot read UI data')
+            old_event=next(event for event in historical['events'] if event['name']=='handleSaveCustomer')
+            old_ref=old_event['source']
+            old_path='/api/sources/'+old_ref['manifestId']+'/'+old_ref['definitionId']
+            old_source=await api(old_path)
+            assert 'HMR_REVISION_TWO' not in old_source['code']
+            before={trace['traceId'] for trace in await action_traces()}
+            async with page.expect_event('load',timeout=20000):
+                source_file.write_text(original_source.replace('const response = await handler.fetch', '/* HMR_REVISION_TWO */ const response = await handler.fetch'))
+            await page.get_by_label('예제 이름').fill(prefix+'-hmr')
+            await page.get_by_role('button',name='저장',exact=True).click();actions+=1
+            details=await wait_actions(actions)
+            current=next(trace for trace in details if trace['traceId'] not in before)
+            current_event=next(event for event in current['events'] if event['name']=='handleSaveCustomer')
+            current_ref=current_event['source']
+            assert current_event['buildId'] != old_event['buildId']
+            assert current_ref['manifestId'] != old_ref['manifestId'] and current_ref['definitionId'] != old_ref['definitionId']
+            assert any(item['spanId']==current_event['spanId'] and item['status']=='linked' for item in current['sourceGraph']['mappings'])
+            assert old_source==await api(old_path)
+            new_source=await api('/api/sources/'+current_ref['manifestId']+'/'+current_ref['definitionId'])
+            assert 'HMR_REVISION_TWO' in new_source['code']
+            historical_again=await api('/api/traces/'+historical['traceId'])
+            assert historical_again['sourceGraph']['nodes']==historical['sourceGraph']['nodes']
+            assert await db_count(prefix+'-hmr')==1
+            report['checks'].append('real Vite HMR: new build and source IDs, old trace and callback bytes remain immutable')
+            await ui.get_by_role('button',name='새로고침',exact=True).click()
+            await ui.locator('.runtime-trace[data-trace-id="'+current['traceId']+'"]').click()
+            await ui.locator('.source-node').filter(has_text='handleSaveCustomer').click()
+            await expect(ui.locator('.source-code')).to_contain_text('HMR_REVISION_TWO')
+            await ui.locator('.runtime-trace[data-trace-id="'+historical['traceId']+'"]').click()
+            await ui.locator('.source-node').filter(has_text='handleSaveCustomer').click()
+            await expect(ui.locator('.source-code')).not_to_contain_text('HMR_REVISION_TWO')
+            await expect(ui.locator('.source-code')).to_contain_text("handler.fetch('/api/customers'")
+            await ui.screenshot(path=str(OUT/'historical-source.png'),full_page=True)
+            report['checks'].append('historical graph selection displays old source after real HMR, never the current file')
+            # Source history is an authenticated UI surface, not readable by the page relay token.
+            denied_source=await ui.evaluate("""async ({path,token}) => (await fetch(path,{headers:{Authorization:'Bearer '+token}})).status""",{'path':old_path,'token':bootstrap['relaySession']})
+            assert denied_source==401
+            report['checks'].append('source history is inaccessible with browser relay credentials')
+            before_success=await page.locator('li[data-scenario="success"][data-ok="true"]').count()
             server.stdin.write(b'stop-collector\n');await server.stdin.drain()
             await ready_line('OPEN_VIEW_COLLECTOR_STOPPED')
             await page.get_by_label('예제 이름').fill(prefix+'-collector-offline')
             await page.get_by_role('button',name='저장',exact=True).click()
-            await expect(page.locator('li[data-scenario="success"][data-ok="true"]')).to_have_count(4)
+            await expect(page.locator('li[data-scenario="success"][data-ok="true"]')).to_have_count(before_success+1)
             assert await db_count(prefix+'-collector-offline')==1
             report['checks'].append('collector stopped: browser and actual DB save still succeed')
             assert not errors, errors
@@ -149,6 +214,7 @@ async def main():
             server.terminate()
             try: await asyncio.wait_for(server.wait(),10)
             except asyncio.TimeoutError: server.kill();await server.wait()
+        source_file.write_text(original_source)
         # Remove only this run's generated records. Never clear the whole example table.
         if os.environ.get('OPEN_VIEW_EXAMPLE_DATABASE_URL'):
             script="import pg from 'pg';const p=new pg.Pool({connectionString:process.env.OPEN_VIEW_EXAMPLE_DATABASE_URL});try{await p.query('DELETE FROM open_view_runtime_examples WHERE name LIKE $1',[process.argv[1]+'%']);}finally{await p.end();}"

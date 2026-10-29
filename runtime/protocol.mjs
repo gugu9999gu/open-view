@@ -10,7 +10,7 @@ export function randomId(bytes = 16) {
 }
 export function traceparent(context) { return `00-${context.traceId}-${context.spanId}-01`; }
 export function validateEvent(input) {
-  const fields = ['schemaVersion', 'eventId', 'projectId', 'buildId', 'runtimeInstanceId', 'pageInstanceId', 'interactionId', 'sequence', 'droppedCount', 'traceId', 'spanId', 'parentSpanId', 'kind', 'name', 'startedAt', 'durationMs', 'status', 'outcome'];
+  const fields = ['schemaVersion', 'eventId', 'projectId', 'buildId', 'runtimeInstanceId', 'pageInstanceId', 'interactionId', 'sequence', 'droppedCount', 'traceId', 'spanId', 'parentSpanId', 'kind', 'name', 'startedAt', 'durationMs', 'status', 'outcome', 'source'];
   if (!input || typeof input !== 'object' || Array.isArray(input) || Object.keys(input).some(key => !fields.includes(key))) throw new TypeError('Unsupported event fields');
   if (input.schemaVersion !== 1 || !HEX(input.eventId, 32) || !HEX(input.traceId, 32) || !HEX(input.spanId, 16)
       || (input.parentSpanId !== null && (!HEX(input.parentSpanId, 16) || input.parentSpanId === input.spanId))) throw new TypeError('Invalid event identity');
@@ -22,5 +22,11 @@ export function validateEvent(input) {
       || /[\x00-\x1f\x7f]/.test(input.name)) throw new TypeError('Invalid span label');
   if (!Number.isFinite(input.startedAt) || input.startedAt < 0 || !Number.isFinite(input.durationMs)
       || input.durationMs < 0 || input.durationMs > 86_400_000 || !['ok', 'error', 'cancelled'].includes(input.status)) throw new TypeError('Invalid span timing/status');
+  if (input.source !== undefined && input.source !== null) {
+    const source = input.source;
+    if (!source || typeof source !== 'object' || Array.isArray(source)
+        || Object.keys(source).sort().join() !== 'definitionId,manifestId'
+        || !/^[a-f0-9]{64}$/.test(source.manifestId) || !/^function:[a-f0-9]{20}$/.test(source.definitionId)) throw new TypeError('Invalid source reference');
+  }
   return { ...input, outcome: normalizeOutcome(input.outcome) };
 }

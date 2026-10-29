@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 const root='artifacts/runtime-production';
-const forbidden=['__open_view','relaySession','runtimeInstanceId','traceparent','api/ingest','sourceSnapshotId'];
+const forbidden=['__open_view','relaySession','runtimeInstanceId','traceparent','api/ingest','sourceSnapshotId','manifestId','definitionId','moduleVersion'];
 let count=0;
 async function check(directory){
   for(const entry of await fs.readdir(directory,{withFileTypes:true})){

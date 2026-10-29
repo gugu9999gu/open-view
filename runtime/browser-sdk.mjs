@@ -2,13 +2,13 @@ import { randomId, traceparent } from './protocol.mjs';
 import { normalizeOutcome, propagationHeaders } from '../lib/observation-contract.mjs';
 /** Browser context is explicit, not a global mutable current-action variable. */
 export function createBrowserTracer({ emitter, baseUrl, allowedOrigins = [], fetchImpl = globalThis.fetch } = {}) {
-  async function span(name, callback, { kind = 'function', parent = null } = {}) {
+  async function span(name, callback, { kind = 'function', parent = null, source = null } = {}) {
     const context = { traceId: parent?.traceId || randomId(), spanId: randomId(8), parentSpanId: parent?.spanId || null,
       interactionId: parent?.interactionId || randomId() };
     const startedAt = Date.now(), start = performance.now(); let status = 'ok', outcome = normalizeOutcome();
     const control = { ...context,
       setOutcome(patch) { outcome = normalizeOutcome({ ...outcome, ...patch }); },
-      span(label, task) { return span(label, task, { parent: context }); },
+      span(label, task, options = {}) { return span(label, task, { source: options.source, parent: context }); },
       fetch(input, init = {}) {
         const target = new URL(input instanceof Request ? input.url : String(input), baseUrl);
         const headers = propagationHeaders({ url: target, baseUrl, traceparent: traceparent(context), allowedOrigins });
@@ -25,7 +25,7 @@ export function createBrowserTracer({ emitter, baseUrl, allowedOrigins = [], fet
     };
     try { return await callback(control); }
     catch (error) { status = error?.name === 'AbortError' ? 'cancelled' : 'error'; throw error; }
-    finally { try { emitter.emit({ ...context, kind, name, startedAt, durationMs: performance.now() - start, status, outcome }); } catch {} }
+    finally { try { emitter.emit({ ...context, source, kind, name, startedAt, durationMs: performance.now() - start, status, outcome }); } catch {} }
   }
-  return { traceAction: (name, callback) => span(name, callback, { kind: 'action' }) };
+  return { traceAction: (name, callback, options = {}) => span(name, callback, { source: options.source, kind: 'action' }) };
 }

@@ -1,9 +1,10 @@
 import crypto from 'node:crypto';
+import { sourceGraph } from './source-graph.mjs';
 import { identifier, validateEvent, KINDS } from './protocol.mjs';
 const digest = token => crypto.createHash('sha256').update(token).digest('hex');
 const fail = (status, message) => Object.assign(new Error(message), { status });
 /** Local trusted agents only. An OBSERVED event is agent-reported, not an attestation. */
-export function createCollector({ projectId, maxEvents = 5000, maxAgents = 64, ttlMs = 30 * 60_000, now = Date.now } = {}) {
+export function createCollector({ projectId, maxEvents = 5000, maxAgents = 64, ttlMs = 30 * 60_000, now = Date.now, sources = null } = {}) {
   if (!identifier(projectId) || !Number.isInteger(maxEvents) || maxEvents < 1 || maxEvents > 20_000
       || !Number.isInteger(maxAgents) || maxAgents < 1 || maxAgents > 256 || !Number.isFinite(ttlMs) || ttlMs <= 0) throw new TypeError('Invalid collector configuration');
   const grants = new Map(), records = new Map(); let evicted = 0;
@@ -66,7 +67,8 @@ export function createCollector({ projectId, maxEvents = 5000, maxAgents = 64, t
     const spanIds = new Set(events.map(event => event.spanId));
     const runtimeIds = new Set(events.map(event => event.runtimeInstanceId));
     const scopes = [...grants.values()].filter(grant => runtimeIds.has(grant.runtimeInstanceId));
-    return { traceId: id, basis: 'observed', sourceMapping: 'not-linked', events,
+    return { traceId: id, basis: 'observed', sourceMapping: sources ? 'per-span-manifest' : 'not-linked', events,
+      ...(sources ? { sourceGraph: sourceGraph(events, sources) } : {}),
       coverage: { status: 'best-effort', missingParents: [...new Set(events.filter(event => event.parentSpanId && !spanIds.has(event.parentSpanId)).map(event => event.parentSpanId))],
         runtimeSequenceGaps: scopes.reduce((n, grant) => n + grant.maxSequence - grant.sequences.size, 0),
         reportedDropped: scopes.reduce((n, grant) => n + grant.droppedCount, 0), evicted,
@@ -87,9 +89,9 @@ export function createCollector({ projectId, maxEvents = 5000, maxAgents = 64, t
     return { basis: 'observed', traces: [...groups.values()].sort((a,b) => b.startedAt - a.startedAt).slice(0,100),
       retainedEvents: records.size, retainedTraces: groups.size, evicted, retentionMs: ttlMs, capture: 'metadata-only', completeness: 'best-effort' };
   }
-  return { projectId, issueAgent, authorize, ingest, list, trace,
-    clear() { records.clear(); evicted = 0; },
-    close() { grants.clear(); records.clear(); },
+  return { projectId, sources, issueAgent, authorize, ingest, list, trace,
+    clear() { records.clear(); evicted = 0; sources?.clear(); },
+    close() { grants.clear(); records.clear(); sources?.clear(); },
     revoke(token) { grants.delete(digest(token)); } };
 }
 export function readJsonBody(req, maxBytes = 64 * 1024) {

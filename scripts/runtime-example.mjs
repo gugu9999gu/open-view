@@ -9,7 +9,7 @@ import { createCollector, readJsonBody } from '../runtime/collector.mjs';
 import { createEmitter, httpTransport } from '../runtime/emitter.mjs';
 import { createNodeTracer } from '../runtime/node-sdk.mjs';
 import { openViewRelay } from '../runtime/vite-plugin.mjs';
-import { saveCustomer } from '../examples/runtime-app/service.mjs';
+import { createSourceRegistry, loadSourceModule } from '../runtime/source-registry.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export function validateExampleDatabase(value) {
   const url = new URL(value);
@@ -28,7 +28,9 @@ export async function startRuntimeExample({ databaseUrl = process.env.OPEN_VIEW_
     const buildHash = crypto.createHash('sha256');
     for (const file of ['examples/runtime-app/src/main.jsx', 'examples/runtime-app/service.mjs', 'runtime/node-sdk.mjs', 'runtime/browser-sdk.mjs']) buildHash.update(await fs.readFile(path.join(root, file)));
     const buildId = `example:${buildHash.digest('hex').slice(0,32)}`, projectId = 'open-view-runtime-example';
-    const collector = createCollector({ projectId });
+    const sources = createSourceRegistry({ projectId, root: await fs.realpath(path.join(root, 'examples/runtime-app')) });
+    const { saveCustomer } = await loadSourceModule({ registry: sources, moduleId: 'service.mjs', buildId });
+    const collector = createCollector({ projectId, sources });
     ui = createOpenViewServer({ project: path.join(root, 'examples/runtime-app'), port: uiPort, collector });
     await new Promise((resolve,reject) => { ui.server.once('error', reject); ui.server.listen(uiPort,'127.0.0.1',resolve); });
     const uiUrl = `http://127.0.0.1:${ui.server.address().port}`;
@@ -37,7 +39,7 @@ export async function startRuntimeExample({ databaseUrl = process.env.OPEN_VIEW_
     const tracer = createNodeTracer({ emitter });
     app = await createViteServer({ configFile: path.join(root,'examples/runtime-app/vite.config.mjs'),
       server: { host: '127.0.0.1', port: appPort, strictPort: true },
-      plugins: [openViewRelay({ projectId, buildId, collectorUrl: uiUrl, issueAgent: collector.issueAgent, revokeAgent: collector.revoke }), {
+      plugins: [openViewRelay({ projectId, buildId, collectorUrl: uiUrl, issueAgent: collector.issueAgent, revokeAgent: collector.revoke, sources, sourceFiles: ['src/main.jsx'] }), {
         name: 'example-business-api', apply: 'serve', configureServer(server) {
           server.middlewares.use(async (req,res,next) => {
             if (!req.url?.startsWith('/api/')) return next();
