@@ -35,3 +35,16 @@ doNotStore:
 ## 2026-10-29 session-close
 - Generated session-handoff.md and refreshed current-state.md.
 - leerness check 및 session close --no-suggest를 실제 실행하여 종료 코드 0을 확인했다. 자동 생성된 현재 상태/인계는 보존하며 활성 사용자 룰은 없다.
+
+## 2026-10-29 — R11/R12 소스 연결
+- 선택된 inline callback AST, 파일 해시, 공유 sourceRef를 구현했다. 원본과 변환 코드는 구분하고 shadowing/중복 이름으로 잘못 연결하지 않도록 검사했다.
+- 소스 보관 상한·만료·삭제, UI 조회 권한, Node loader 제한, 과거/현재 trace 그래프와 코드 보기를 구현했다.
+- 종료 코드 0: 로컬 npm test 82/82, npm run check 42 modules, build:example, check-production 3 files/9 markers. 로컬 browser는 ERR_BLOCKED_BY_ADMINISTRATOR로 차단.
+- CI run 40845242282 성공: Node82/PG9/browser14+17. 실제 Vite 파일 변경과 DB SELECT를 포함. artifact 12884761712의 로그/JSON/화면을 확인했다.
+- 업로드 tree 62323ba5ee234608b4d9873ea6e067171d0fcb56와 테스트 코드 일치. CI archive의 구현/테스트 바이트도 일치하며 새 작업 등록 메타데이터만 별도다.
+- R01–R12 단계 진행률 12/12=100%. 전체 제품 완료, React 상태 보존, Node hot reload, 자동 계측으로 확대하지 않는다.
+- PR #3은 PR #2 기반. main 병합/배포 없이 문서·인계 후속 커밋도 다시 CI 검증한다. 별도 모델 검수는 실행하지 않았다.
+
+## 2026-10-29 session-close
+- Generated session-handoff.md and refreshed current-state.md.
+- 이번 R11/R12의 verify-claim --run-tests --strict-claims, encoding check, check, session close --no-suggest 종료 코드 0. 자동 산출물 leerness.html/pre-wake-report는 로컬 검증용으로만 보관하고 기능 소스에 추가하지 않는다.

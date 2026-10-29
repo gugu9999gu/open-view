@@ -14,16 +14,18 @@ doNotStore:
 <!-- leerness:current-handoff:start -->
 # Session Handoff
 
-Last generated: 2026-10-29T07:18:51.059Z
+Last generated: 2026-10-29T08:58:05.853Z
 
 ## Completed
+- T-0007 (done, updated: 2026-10-29) — progress-tracker.md: T-0007
 - T-0006 (done, updated: 2026-10-29) — progress-tracker.md: T-0006
 - T-0005 (done, updated: 2026-10-29) — progress-tracker.md: T-0005
+- T-0004 (done, updated: 2026-10-29) — progress-tracker.md: T-0004
 - T-0002 (done, updated: 2026-10-29) — progress-tracker.md: T-0002
-- 전체 3건 중 최근 갱신 3건의 참조. 원문·근거는 progress-tracker.md, 전체 조회: leerness task list --all --json. 보관·삭제하지 않음.
+- 전체 5건 중 최근 갱신 5건의 참조. 원문·근거는 progress-tracker.md, 전체 조회: leerness task list --all --json. 보관·삭제하지 않음.
 
 ## In Progress
-- T-0004 실제 저장 trace 한 경로 → next: R11 소스 매핑, R12 HMR/그래프
+- 없음
 
 ## Planned / Requested
 - T-0001 프로젝트 계획 정리 → next: project-brief.md를 실제 목적으로 업데이트
@@ -59,10 +61,10 @@ Verification command/result history. Append-only.
 - none
 
 ## Recommended Direction
-- 실제 저장 trace 한 경로
+- 프로젝트 계획 정리
 
 ## Next Exact Step
-- R11 소스 매핑, R12 HMR/그래프
+- project-brief.md를 실제 목적으로 업데이트
 <!-- leerness:current-handoff:end -->
 
 <!-- leerness:managed -->
@@ -105,7 +107,7 @@ Last generated: (자동)
 - E2E의 82f347321bf97677b4ec96cc9895ab2148c036de는 PR 임시 merge commit, main 병합이 아님.
 - 로컬 정책 제한과 CI 통과는 별도 사실. session close CLI를 실행했다고 주장하지 않으며 이 인계 기록으로 범위를 남김.
 
-## 현재 인계 — 0.2.0, 2026-10-29
+## 역사 인계 — 0.2.0, 2026-10-29
 - 완료: 명시적 SDK, 메모리 collector/권한 분리, Vite relay, 실제 PG 트랜잭션, OBSERVED UI. 12개 인수 기준 중 10개 검증.
 - 미완료/다음 순서: R11 소스 manifest↔sourceRef, R12 과거 HMR 소스 보존과 그래프 강조. 자동 계측/클라우드 확장은 그 이후.
 - 차단: 로컬 npm DNS 및 Chromium navigation 정책. 검증용 의존성은 GitHub Actions의 고정 lockfile artifact로 확보했다. 우회/모의 E2E 없음.
@@ -113,3 +115,14 @@ Last generated: (자동)
 - 실패/수정: 완성 전 import commit의 CI는 lockfile/소스 미정리로 실패했고 bot import commit은 action_required였다. 실제 follow-up commit에서 전체 CI를 새로 통과했다. 임시 source-import workflow는 자기 제거되어 최종 소스에 없으며 일반 검증은 읽기 전용이다.
 - 화면 검수: OBSERVED 옆에 DEMO 소스 Inspector가 남는 혼동을 발견하여 runtime 화면에서 해당 패널을 숨기고 브라우저 회귀 기준을 추가했다.
 - PR #2 base는 PR #1 branch. main 병합/배포 없음. 활성 사용자 룰 없음. 별도 모델/에이전트 검수는 실행하지 않았다.
+
+## 현재 인계 — R11/R12 소스 연결, 2026-10-29
+- 완료: 선택된 inline callback의 scanner/runtime sourceRef 연결, bounded 원본 보관, UI 인증 소스 조회, Vite 변경 전후 원본 분리, trace별 OBSERVED 그래프·노드 강조·코드 미리보기.
+- 진행률: 고정 R01–R12 12/12=100%. 전체 제품·남은 공수의 비율이 아니다. 자동 생성된 전체 task 완료율과도 다른 지표다.
+- 근거: code 256d6db8, tree 62323ba5ee234608b4d9873ea6e067171d0fcb56, CI 40845242282, artifact 12884761712. Node82/PG9/browser14+17, syntax42, production9 표식 부재. docs/validation-source-mapping.json.
+- 실제 Vite 파일 수정과 독립 PostgreSQL 조회를 포함한 브라우저 E2E, 과거/현재 코드 표시 스크린샷을 확인했다. 문서 후속 commit도 동일 CI로 다시 검증한다.
+- 로컬 ERR_BLOCKED_BY_ADMINISTRATOR는 그대로 기록했다. 네트워크 mock이나 정책 우회는 없다. code와 artifact 비교에서 구현 바이트는 모두 일치했다.
+- 한계: 선택 파일/inline callback만 지원, React 상태 보존/Node hot reload/자동 설치/클라우드/영구 저장/실시간 stream 미구현. 원본 소스의 상수·SQL·주석이 포함될 수 있어 이벤트 메타데이터와 구분한다.
+- verify-claim T-0007 --run-tests --strict-claims, encoding check, check, session close --no-suggest를 실제 실행하고 모두 종료 코드 0을 확인했다. 활성 사용자 룰 없음. 별도 모델 검수 없음.
+- PR #3은 PR #2 기반이며 main 병합/배포하지 않았다. package 0.2.0 유지, 변경은 Unreleased.
+- 다음 정확한 순서: 문서 후속 head CI·artifact 확인 → PR #3 검토 → 사용자 프로젝트의 명시적 설치/선택적 계측과 지원 범위 진단을 별도 인수 기준으로 정의한다.

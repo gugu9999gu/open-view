@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — R11/R12, 2026-10-29
+
+- Link selected explicit inline callbacks through original-file SHA-256 and AST offsets; share version-scoped definition IDs with the static scanner.
+- Retain bounded local source versions and expose original callbacks through UI-authenticated source endpoints. Never infer missing mappings from function names or timestamps.
+- Add a trace-specific OBSERVED source graph, verified-node highlighting, original source preview and explicit unmapped/expired states.
+- Preserve historical callback bytes across Vite full reloads with new build IDs. This is not React state-preserving HMR or Node hot reload.
+- Source retention is separate from metadata-only telemetry: original source can include literals, SQL and comments.
+- Runtime acceptance R01–R12: 12/12 (100%), not whole-product or effort completion.
+- Code 256d6db8, CI 40845242282: Node82, PG9 including parent, browser14+17, syntax42, production9 markers absent. Later commits require their own CI confirmation.
+- PR #3 is stacked on PR #2; package version remains 0.2.0. No merge, release or deployment.
+
 ## 0.2.0 — 2026-10-29
 
 - Add explicit Browser/Node SDKs, bounded ingest collector with separate credentials, and development-only Vite relay.
