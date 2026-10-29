@@ -14,15 +14,16 @@ doNotStore:
 <!-- leerness:current-handoff:start -->
 # Session Handoff
 
-Last generated: 2026-10-29T08:58:05.853Z
+Last generated: 2026-10-29T10:02:00.164Z
 
 ## Completed
+- T-0008 (done, updated: 2026-10-29) — progress-tracker.md: T-0008
 - T-0007 (done, updated: 2026-10-29) — progress-tracker.md: T-0007
 - T-0006 (done, updated: 2026-10-29) — progress-tracker.md: T-0006
 - T-0005 (done, updated: 2026-10-29) — progress-tracker.md: T-0005
 - T-0004 (done, updated: 2026-10-29) — progress-tracker.md: T-0004
 - T-0002 (done, updated: 2026-10-29) — progress-tracker.md: T-0002
-- 전체 5건 중 최근 갱신 5건의 참조. 원문·근거는 progress-tracker.md, 전체 조회: leerness task list --all --json. 보관·삭제하지 않음.
+- 전체 6건 중 최근 갱신 6건의 참조. 원문·근거는 progress-tracker.md, 전체 조회: leerness task list --all --json. 보관·삭제하지 않음.
 
 ## In Progress
 - 없음
@@ -31,6 +32,7 @@ Last generated: 2026-10-29T08:58:05.853Z
 - T-0001 프로젝트 계획 정리 → next: project-brief.md를 실제 목적으로 업데이트
 
 ## Incomplete / Waiting / On Hold / Blocked
+- T-0009 외부 프로젝트 연결 O01–O10 → next: Obtain a user-selected business-project path/repository and test O10 without production changes
 - T-0003 로컬 실제 브라우저 E2E → next: 로컬 정책은 그대로 유지; CI 증거 별도
 
 ## Dropped
@@ -126,3 +128,14 @@ Last generated: (자동)
 - verify-claim T-0007 --run-tests --strict-claims, encoding check, check, session close --no-suggest를 실제 실행하고 모두 종료 코드 0을 확인했다. 활성 사용자 룰 없음. 별도 모델 검수 없음.
 - PR #3은 PR #2 기반이며 main 병합/배포하지 않았다. package 0.2.0 유지, 변경은 Unreleased.
 - 다음 정확한 순서: 문서 후속 head CI·artifact 확인 → PR #3 검토 → 사용자 프로젝트의 명시적 설치/선택적 계측과 지원 범위 진단을 별도 인수 기준으로 정의한다.
+
+## 현재 인계 — 외부 프로젝트 연결, 2026-10-29
+- 완료: T-0008, init/doctor/dev·공개 CLI/exports·선택 파일 원본 연결·Vite 수명주기·독립 패키지 소비 앱 E2E. 기존 UI 재사용.
+- 범위: Node22/Vite7/React19, single root/base=/, loopback HTTP, explicit inline callback. 별도 서버 자동 연결·Next/SSR·모든 함수 자동 계측·클라우드·영구 저장은 아님.
+- 진행률: 고정 O01–O10 9/10=90%. T-0009 waiting: O10 실제 업무 프로젝트 대상 미지정. 기존 R01–R12는 12/12 유지.
+- 근거: code e7e40867/tree f4f7bebbaa8f98dc2286ad78cd3b58cb2c4421cd, CI40853572299, artifact12888601606. Node97/PG9/browser14+17+12, syntax49. CI source121개 파일은 로컬 코드 commit과 일치.
+- 로컬 npm DNS 실패는 유지했고 우회/모의 browser 통신 없음. 실제 외부 설치·PG·브라우저는 CI에서 검증. 사용자 업무 프로젝트로 확대하지 않음.
+- 주요 수정: 실패 startup의 watcher/server dispose, 정상 종료 직전 Vite pre-transform drain. 초기 문제 및 회귀 검사를 task-log에 기록.
+- 명령 종료 코드0: verify-claim T-0008 --run-tests --strict-claims, npm test/check, encoding check, leerness check, session close --no-suggest. 활성 사용자 룰 없음, 별도 모델 검수 없음.
+- PR #4 base는 feat/source-mapping-20261029. main 병합/배포/공개 npm publish 없음. package0.2.0/Unreleased 유지.
+- 다음 정확한 순서: 문서 후속 head CI·산출물 확인 → PR #4 검토 가능으로 전환 → 지정된 실제 업무 프로젝트에서 O10 검증. 자동 생성 검증 앱으로 O10 완료 금지.

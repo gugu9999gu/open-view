@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased — project connection, 2026-10-29
+
+- Add explicit init/doctor/dev CLI and a local package bin/exports; no registry publication.
+- Preview configuration by default; create only new JSON on --write. Validate selected paths, size limits and symlinks.
+- Diagnose installed Vite/React and inline wrappers without executing project configuration/scripts or reading .env.
+- Require explicit trust before dev executes the target project's existing Vite configuration and plugins.
+- Inject selected development instrumentation without rewriting target source/config/scripts; default browser package export is production no-op.
+- Dispose UI/Vite resources on startup failures and drain pending transforms before closing watchers.
+- Verify actual packed-package installation in an independent consumer, real browser/API/source/HMR, error semantics, collector shutdown and production exclusion.
+- New O01–O10 milestone: 9/10 (90%). O10 is untested user-selected business-project acceptance; existing R01–R12 stays 12/12.
+- Code e7e40867 / CI 40853572299: Node97, PG9 including parent, browser14+17+12, syntax49. Later documentation commits require their own CI.
+- PR #4 is stacked on PR #3, package remains private 0.2.0, changes Unreleased. No main merge/deployment/public npm publish.
+
 ## Unreleased — R11/R12, 2026-10-29
 
 - Link selected explicit inline callbacks through original-file SHA-256 and AST offsets; share version-scoped definition IDs with the static scanner.
