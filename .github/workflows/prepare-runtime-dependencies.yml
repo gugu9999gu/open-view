@@ -1,0 +1,27 @@
+name: Prepare runtime dependency lock
+on:
+  pull_request:
+    paths: ['.github/workflows/prepare-runtime-dependencies.yml']
+permissions:
+  contents: read
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --save-dev --save-exact --ignore-scripts --no-audit --no-fund vite@7 react@19 react-dom@19 pg@8
+      - run: |
+          mkdir -p /tmp/runtime-deps
+          cp package.json package-lock.json /tmp/runtime-deps/
+          tar czf /tmp/runtime-deps/node_modules.tgz node_modules
+      - uses: actions/upload-artifact@v4
+        with:
+          name: runtime-dependency-lock
+          path: /tmp/runtime-deps/
+          retention-days: 7
