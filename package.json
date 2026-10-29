@@ -2,7 +2,7 @@
   "name": "open-view",
   "version": "0.2.0",
   "private": true,
-  "description": "Local-first visual project explorer — design prototype and bounded static scanner.",
+  "description": "Local-first visual project explorer \u2014 design prototype and bounded static scanner.",
   "type": "module",
   "engines": {
     "node": ">=22"
@@ -17,7 +17,9 @@
     "example:runtime": "node scripts/runtime-example.mjs",
     "build:example": "vite build --config examples/runtime-app/vite.config.mjs",
     "test:integration": "node --test test/integration/*.test.mjs",
-    "test:runtime-e2e": "python scripts/check-runtime.py"
+    "test:runtime-e2e": "python scripts/check-runtime.py",
+    "connect": "node onboarding/cli.mjs",
+    "test:connection-e2e": "python scripts/check-connection.py"
   },
   "dependencies": {
     "typescript": "5.8.3"
@@ -28,5 +30,24 @@
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "vite": "7.3.7"
-  }
+  },
+  "bin": {
+    "open-view": "onboarding/cli.mjs"
+  },
+  "exports": {
+    "./vite": "./onboarding/vite.mjs",
+    "./browser": "./runtime/browser-disabled.mjs",
+    "./node": "./runtime/node-sdk.mjs",
+    "./postgres": "./runtime/postgres.mjs",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "server.mjs",
+    "lib/",
+    "runtime/",
+    "onboarding/",
+    "public/",
+    "docs/PROJECT-CONNECTION.ko.md",
+    "README.md"
+  ]
 }

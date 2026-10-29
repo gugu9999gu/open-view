@@ -15,7 +15,7 @@ export function transformSource({ root, moduleId, source, nodeReceivers = [] }) 
     useCaseSensitiveFileNames: () => true, getNewLine: () => '\n' };
   const checker = ts.createProgram([moduleId], { allowJs: true, noLib: true, noResolve: true, jsx: ts.JsxEmit.Preserve }, host).getTypeChecker();
   for (const statement of sf.statements) {
-    if (!ts.isImportDeclaration(statement) || statement.moduleSpecifier.text !== '@open-view/runtime') continue;
+    if (!ts.isImportDeclaration(statement) || !['@open-view/runtime', 'open-view/browser'].includes(statement.moduleSpecifier.text)) continue;
     for (const item of statement.importClause?.namedBindings?.elements || []) {
       if ((item.propertyName || item.name).text === 'traceAction') bindings.set(checker.getSymbolAtLocation(item.name), 'action');
     }
