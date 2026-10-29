@@ -4,20 +4,22 @@
 
 | ID | 기준 | 상태 |
 |---|---|---|
-| R01 | 제한된 collector: 스키마·중복·순서 역전·보관 상한 | 진행 |
-| R02 | UI 조회와 agent 쓰기 권한·프로젝트/실행 인스턴스 분리 | 진행 |
-| R03 | 명시적 browser traceAction/function/fetch, 동시 작업 context 분리 | 진행 |
-| R04 | Node AsyncLocalStorage 및 HTTP traceparent 연결 | 진행 |
-| R05 | 같은 PG client의 쿼리·COMMIT/ROLLBACK/미확인 판정 | 진행 |
-| R06 | React/Vite 실제 클릭 → Node → PostgreSQL → OBSERVED 조회 | 진행 |
-| R07 | rollback·commit 이후 오류·fixture와 실제 DB 레코드 교차 확인 | 진행 |
-| R08 | 동시 클릭·서로 다른 탭·polling trace 분리 | 진행 |
-| R09 | 수집기 중단·queue drop·취소·redirect에서 결과/오류 보존 | 진행 |
-| R10 | production build에 agent/수집 경로/토큰 미포함 | 진행 |
+| R01 | 제한된 collector: 스키마·중복·순서 역전·보관 상한 | 검증 완료 |
+| R02 | UI 조회와 agent 쓰기 권한·프로젝트/실행 인스턴스 분리 | 검증 완료 |
+| R03 | 명시적 browser traceAction/function/fetch, 동시 작업 context 분리 | 검증 완료 |
+| R04 | Node AsyncLocalStorage 및 HTTP traceparent 연결 | 검증 완료 |
+| R05 | 같은 PG client의 쿼리·COMMIT/ROLLBACK/미확인 판정 | 검증 완료 |
+| R06 | React/Vite 실제 클릭 → Node → PostgreSQL → OBSERVED 조회 | 검증 완료 |
+| R07 | rollback·commit 이후 오류·fixture와 실제 DB 레코드 교차 확인 | 검증 완료 |
+| R08 | 동시 클릭·서로 다른 탭·polling trace 분리 | 검증 완료 |
+| R09 | 수집기 중단·queue drop·취소·redirect에서 결과/오류 보존 | 검증 완료 |
+| R10 | production build에 agent/수집 경로/토큰 미포함 | 검증 완료 |
 | R11 | runtime build manifest와 정적 sourceRef의 정확한 연결 | 미구현 |
 | R12 | HMR 전후 과거 소스 보존 및 그래프 노드 실행 강조 | 미구현 |
 
-진행률은 R01–R12에서 검증 완료 항목 수 / 12다. 모든 프레임워크·클라우드 지원의 완성률은 아니다.
+진행률은 R01–R12에서 검증 완료 항목 수 / 12다. **10/12 = 83.3%**이며 모든 프레임워크·클라우드 지원이나 공수의 완성률은 아니다.
+
+검증: 코드 head `10e0a0c3a0e65350eef145f0e8a148d2b770e10e`, CI run `40834192100`. Node/HTTP 66, PostgreSQL 통합 9, 기존 browser 14, 실제 React/DB browser 12개 통과. 커밋 후 변경은 그 head의 CI 결과로 다시 검증한다. R11/R12는 근거 없이 완료로 처리하지 않는다.
 
 ## 구현 계약
 

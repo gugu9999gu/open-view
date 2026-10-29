@@ -48,6 +48,11 @@ Status: completed
 - PR #1 검토 대상이며 main에는 자동 병합하지 않음.
 
 ### M-0003. 실제 저장 trace 한 경로
-Status: planned
-- [ ] React/Vite + Node + 로컬 PostgreSQL의 실제 trace 경로 구현
-- [ ] 동시 클릭·rollback·commit 후 오류·수집기 중단 검증
+Status: in-progress
+Progress: 83.3% (고정 R01–R12 중 10개 검증, 전체 제품/공수 비율 아님)
+- [x] React/Vite + Node + 로컬 PostgreSQL 실제 trace와 OBSERVED UI
+- [x] 동시 클릭·여러 탭·polling·rollback·commit 후 오류·수집기 중단 검증
+- [x] Agent/UI 권한 분리, 실제 redirect/abort, production build 계측 제외
+- [ ] R11 runtime manifest와 정적 sourceRef 연결
+- [ ] R12 HMR 과거 소스 보존 및 그래프 실행 강조
+- 증거: code 10e0a0c3, CI 40834192100; 후속 수정은 새 head CI 별도 확인.

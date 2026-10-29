@@ -1,5 +1,22 @@
 /** Keep OBSERVED records separate from the demo/static graph; never infer source links by name. */
 export function createRuntimeView({ root, request, ready }) {
+  // Unrelated DEMO/STATIC side panels must not appear to explain an observed trace.
+  const chrome = document.createElement('style');
+  chrome.textContent = `
+    body:has(#runtimeView.open) .layout{grid-template-columns:224px minmax(0,1fr)}
+    body:has(#runtimeView.open) #inspector,
+    body:has(#runtimeView.open) #routeNav,
+    body:has(#runtimeView.open) #filetree,
+    body:has(#runtimeView.open) .sidebar>hr,
+    body:has(#runtimeView.open) .sidebar>.section-label:not(:first-child),
+    body:has(#runtimeView.open) .topbar>.project-title,
+    body:has(#runtimeView.open) .topbar>.search,
+    body:has(#runtimeView.open) #searchResults{display:none!important}
+    body:has(#runtimeView.open) #logoutBtn{margin-left:auto}
+    @media(max-width:1200px){body:has(#runtimeView.open) .layout{grid-template-columns:190px minmax(0,1fr)}}
+    @media(max-width:900px){body:has(#runtimeView.open) .layout{grid-template-columns:175px minmax(0,1fr)}}
+  `;
+  document.head.append(chrome);
   let epoch = 0;
   const text = (tag, value, className) => { const element = document.createElement(tag); element.textContent = value; if (className) element.className = className; return element; };
   function clear() { epoch++; root.replaceChildren(); }

@@ -27,7 +27,8 @@ docker run --name open-view-example-db \
 위 비밀번호는 로컬 예제 전용 공개 값이며 운영에 사용하지 않는다. 준비가 끝난 후 실행한다.
 
 ```bash
-export OPEN_VIEW_EXAMPLE_DATABASE_URL='postgres://open_view_example:open_view_local_only@127.0.0.1:5432/open_view_example'
+export OPEN_VIEW_EXAMPLE_PASSWORD='open_view_local_only'
+export OPEN_VIEW_EXAMPLE_DATABASE_URL="postgres://open_view_example:${OPEN_VIEW_EXAMPLE_PASSWORD}@127.0.0.1:5432/open_view_example"
 npm run example:runtime
 ```
 
