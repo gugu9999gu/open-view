@@ -1,8 +1,10 @@
+import {createRuntimeView} from './runtime-view.mjs';
 import {createSessionClient} from './session-client.mjs';
 import {createGraphIndex, searchGraph, graphWindow} from './graph-model.mjs';
 let storage;
 try { storage = window.sessionStorage; } catch {}
 const sessionClient = createSessionClient({baseUrl: location.href, storage});
+const runtimeView = createRuntimeView({root: document.getElementById('runtimeView'), request: (...args)=>sessionClient.request(...args), ready: ()=>authReady});
 let staticIndex = null, searchOffset = 0, scanEpoch = 0;
 const scriptNonce = document.querySelector('script[src$="app.mjs"]')?.nonce || '';
 
@@ -87,6 +89,7 @@ async function runDemo(){if(mode!=='demo'||running)return;running=true;const epo
 for(const [nid,eid,name,start,duration,status,kind]of steps){if(epoch!==runEpoch)break;document.querySelector(`[data-id="${nid}"]`)?.classList.add('activated');document.querySelector(`[data-edge="${eid}"]`)?.classList.add('on',...(status==='ERROR'?['fail']:[]));trace.push({name,start,duration,status,kind,source:'simulation'});renderTrace();await new Promise(r=>setTimeout(r,250));}
 if(epoch===runEpoch){inspect(scenario==='mock'?'fixture':scenario==='error'?'api':'supabase');toast(scenario==='mock'?'더미 폴백 예시: 요청 실패 후 fixture가 반환되는 경로입니다.':scenario==='error'?'오류 예시: 요청 실패를 성공처럼 표시하지 않습니다.':'시연이 끝났습니다. 외부 API나 DB는 호출하지 않았습니다.');}running=false;$('runBtn').disabled=mode!=='demo';}
 function showView(view){
+if(view==='runtime')void runtimeView.refresh();
 if(view==='provenance'){if(mode==='demo')$('provenanceView').innerHTML=demoProvenance;else $('provenanceView').innerHTML='<h2>실제 폴더의 출처 후보</h2><p>정적 분석의 후보일 뿐, 실제 실행이나 데이터 진위를 확정하지 않습니다.</p>'+((staticGraph?.findings||[]).map(f=>`<article class="route-card" style="margin-top:14px"><h3>${esc(f.kind)}</h3><p class="mono">${esc(f.file)}${f.line?':'+f.line:''}</p><p>${esc(f.reason)}</p><span class="pill amber">${esc(f.certainty)}</span></article>`).join('')||'<p>현재 규칙에 일치한 후보가 없습니다. 더미 데이터가 없다는 증명은 아닙니다.</p>');}
 document.querySelectorAll('.overlay').forEach(el=>el.classList.remove('open'));if(view!=='graph')$(view==='help'?'helpView':view+'View').classList.add('open');document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));}
 function chooseRoute(url){scanEpoch++;$('searchResults').hidden=true;$('search').value='';if(running){runEpoch++;running=false;}route=url;mode='demo';$('projectName').textContent='example-crm';$('projectBadge').textContent='개발용 예시';$('filetree').innerHTML=demoFileTree;$('workspaceTitle').textContent='코드의 연결을 눈으로 확인하세요.';$('workspaceSubtitle').textContent='페이지부터 데이터까지, 한 번의 클릭을 따라갑니다.';selected='handler';trace=[];$('traceTitle').textContent='실행 타임라인';$('traceBadge').textContent='대기 중';$('traceDetail').textContent='시연 전용 · 실제 네트워크 요청 없음';$('traceRows').innerHTML='<div class="empty-trace">페이지의 저장 버튼을 눌러 시연을 시작하세요.</div>';showView('graph');drawGraph();if(url.includes('['))toast('동적 패턴의 예시 인스턴스입니다: /products/demo-001');}
@@ -157,7 +160,7 @@ document.addEventListener('keydown',e=>{if(e.key==='/'&&!['INPUT','TEXTAREA'].in
 $('runBtn').onclick=runDemo;$('scanBtn').onclick=scan;$('staticMode').onclick=scan;$('demoMode').onclick=()=>{mode='demo';runEpoch++;running=false;$('projectName').textContent='example-crm';$('workspaceTitle').textContent='코드의 연결을 눈으로 확인하세요.';$('workspaceSubtitle').textContent='페이지부터 데이터까지, 한 번의 클릭을 따라갑니다.';chooseRoute(route);};$('helpBtn').onclick=()=>showView('help');$('backToMap').onclick=()=>showView('graph');$('closeInspector').onclick=()=>{$('inspector').classList.remove('mobile-open');document.querySelectorAll('.node').forEach(n=>n.classList.remove('dim'));};
 $('exportBtn').onclick=()=>{const out=mode==='demo'?{schemaVersion:1,mode:'demo',disclaimer:'All graph data and traces are simulated examples.',nodes,edges,trace}:structuredClone(staticGraph);if(mode==='static'){const root=out.root;out.root='<project-root>';out.nodes=out.nodes.map(n=>({...n,path:n.path===root?'<project-root>':n.path}));}const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`open-view-${mode}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);toast('현재 모드와 판정 근거를 포함해 내보냈습니다.');};
 $('logoutBtn').onclick=async()=>{
-  try { await authReady; await sessionClient.logout(); toast('로그아웃했습니다. 터미널에서 auth를 입력하면 새 로그인 링크를 받습니다.'); }
+  try { await authReady; await sessionClient.logout(); runtimeView.clear(); toast('로그아웃했습니다. 터미널에서 auth를 입력하면 새 로그인 링크를 받습니다.'); }
   catch { toast('로컬 세션을 지웠습니다. 서버에 연결할 수 없습니다.'); }
 };
 const authReady=(async()=>{

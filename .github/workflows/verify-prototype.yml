@@ -13,11 +13,23 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: open_view_test
+          POSTGRES_PASSWORD: open_view_test
+          POSTGRES_DB: open_view_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U open_view_test -d open_view_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       LEERNESS_OFFLINE: '1'
       LEERNESS_NO_PATH_CHECK: '1'
       LEERNESS_NO_STALE_CHECK: '1'
       LEERNESS_NO_DRIFT_CHECK: '1'
+      OPEN_VIEW_EXAMPLE_DATABASE_URL: postgres://open_view_test:open_view_test@127.0.0.1:5432/open_view_test
     steps:
       - uses: actions/checkout@v4
         with:
@@ -31,22 +43,30 @@ jobs:
           python-version: '3.12'
           cache: pip
           cache-dependency-path: scripts/requirements-test.txt
-      - name: Install locked Node dependencies without lifecycle scripts
+      - name: Install locked dependencies without lifecycle scripts
         run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Check source syntax and encoding
+      - name: Syntax and encoding
         run: npm run check
-      - name: Node unit and real HTTP integration tests
+      - name: Unit and real HTTP tests
         run: |
           mkdir -p artifacts
           npm test | tee artifacts/node-tests.txt
+      - name: Real PostgreSQL integration tests
+        run: npm run test:integration | tee artifacts/postgresql-tests.txt
+      - name: Production build isolation
+        run: |
+          npm run build:example
+          node scripts/check-production.mjs | tee artifacts/production-check.txt
       - name: Verify leerness harness
         run: npm run harness:verify
-      - name: Install pinned browser test tools
+      - name: Install browser test tools
         run: |
           python -m pip install -r scripts/requirements-test.txt
           python -m playwright install --with-deps chromium
-      - name: Real browser to server E2E
+      - name: Existing real browser regression
         run: npm run test:e2e
+      - name: React to PostgreSQL browser E2E
+        run: npm run test:runtime-e2e
       - name: Ensure verification did not rewrite tracked source
         run: git diff --exit-code
       - name: Archive tracked source

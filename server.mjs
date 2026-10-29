@@ -6,6 +6,7 @@ import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { createAuth } from './lib/auth.mjs';
 import { scanInWorker } from './lib/scan-runner.mjs';
+import { readJsonBody } from './runtime/collector.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const DEFAULT_PORT = 4418;
@@ -13,12 +14,13 @@ const publicAssets = new Map([
   ['/app.mjs', 'text/javascript; charset=utf-8'],
   ['/graph-model.mjs', 'text/javascript; charset=utf-8'],
   ['/session-client.mjs', 'text/javascript; charset=utf-8'],
+  ['/runtime-view.mjs', 'text/javascript; charset=utf-8'],
 ]);
 export function authorizedHost(host, port) {
   return host === `127.0.0.1:${port}` || host === `localhost:${port}`;
 }
 export function createServer({ project, port = DEFAULT_PORT,
-  token = crypto.randomBytes(32).toString('hex'), authOptions = {}, scanTimeoutMs = 30_000,
+  token = crypto.randomBytes(32).toString('hex'), authOptions = {}, scanTimeoutMs = 30_000, collector = null,
 } = {}) {
   if (typeof project !== 'string' || !project) throw new TypeError('A trusted project directory is required');
   const auth = createAuth({ ...authOptions, token });
@@ -41,6 +43,12 @@ export function createServer({ project, port = DEFAULT_PORT,
       if (url.origin !== origin) return send(403, { error: 'Request origin denied' });
       if (req.headers.origin && req.headers.origin !== origin) return send(403, { error: 'Origin denied' });
       if (req.headers['sec-fetch-site'] === 'cross-site') return send(403, { error: 'Cross-site request denied' });
+      if (url.pathname === '/api/ingest' && collector) {
+        if (req.method !== 'POST') return send(405, { error: 'POST required' });
+        if (!collector.authorize(req.headers.authorization)) return send(401, { error: 'Ingest credential required' });
+        try { return send(202, collector.ingest(req.headers.authorization, await readJsonBody(req))); }
+        catch (error) { return send(error.status || 400, { error: error.status ? error.message : 'Invalid batch' }); }
+      }
       if (url.pathname === '/api/session' && req.method === 'POST') {
         const session = auth.exchange(req.headers.authorization);
         return session ? send(200, session) : send(401, { error: 'Expired, consumed, or invalid bootstrap token' });
@@ -51,14 +59,22 @@ export function createServer({ project, port = DEFAULT_PORT,
           auth.revoke(req.headers.authorization);
           return send(204, '');
         }
+        if (collector && url.pathname === '/api/traces' && req.method === 'DELETE') {
+          collector.clear(); return send(204, '');
+        }
         if (req.method !== 'GET') return send(405, { error: 'Read-only analysis API' });
+        if (collector && url.pathname === '/api/traces') return send(200, collector.list());
+        if (collector && /^\/api\/traces\/[a-f0-9]{32}$/.test(url.pathname)) {
+          const result = collector.trace(url.pathname.split('/').pop());
+          return result ? send(200, result) : send(404, { error: 'Trace not retained' });
+        }
         if (url.pathname === '/api/graph') {
           if (!scanPromise) scanPromise = scanInWorker(project, {
             timeoutMs: scanTimeoutMs, signal: shutdown.signal,
           }).finally(() => { scanPromise = null; });
           return send(200, await scanPromise);
         }
-        if (url.pathname === '/api/config') return send(200, { project, mode: 'static', runtime: 'not-implemented' });
+        if (url.pathname === '/api/config') return send(200, { project, mode: 'static', runtime: collector ? 'explicit-wrappers' : 'not-implemented' });
         return send(404, { error: 'Not found' });
       }
       if (req.method !== 'GET' && req.method !== 'HEAD') return send(405, { error: 'Method not allowed' });
@@ -91,7 +107,7 @@ export function createServer({ project, port = DEFAULT_PORT,
   });
   server.requestTimeout = 10_000;
   server.headersTimeout = 10_000;
-  server.on('close', () => { shutdown.abort(); auth.clear(); });
+  server.on('close', () => { shutdown.abort(); auth.clear(); collector?.close(); });
   return { server, token, issueBootstrapToken: () => auth.issueBootstrap() };
 }
 

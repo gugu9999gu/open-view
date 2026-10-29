@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0 — 2026-10-29
+
+- Add explicit Browser/Node SDKs, bounded ingest collector with separate credentials, and development-only Vite relay.
+- Observe a real React click through Node and a single-client PostgreSQL transaction, preserving commit, rollback, unknown, business result and fixture provenance separately.
+- Add authenticated OBSERVED list/detail/delete UI; do not connect events to static definitions by name or timestamp.
+- Add actual PostgreSQL integration and browser-to-database tests, concurrent actions/tabs/polling, collector shutdown, and production instrumentation-exclusion checks.
+- Runtime phase acceptance: 10/12 (83.3%). Precise source mapping and historical HMR source/graph highlighting remain unimplemented.
+- Verified code head 10e0a0c3, CI 40834192100: Node/HTTP 66, PostgreSQL integration 9, static browser 14, runtime browser 12 passed.
+- No automatic merge or deployment; PR #2 is stacked on PR #1.
+
 ## 0.1.1 — 2026-10-29
 
 - Fix reusable bootstrap credentials and cross-port auth-cookie exposure by exchanging a short-lived single-use bootstrap for a separate expiring UI Bearer session; add logout and terminal reissue.

@@ -1,0 +1,38 @@
+{
+  "version": "0.2.0",
+  "date": "2026-10-29",
+  "scope": "explicit React/Vite to Node to local PostgreSQL runtime phase",
+  "codeHead": "10e0a0c3a0e65350eef145f0e8a148d2b770e10e",
+  "ciRun": 40834192100,
+  "ciArtifact": 12879748129,
+  "artifactSha256": "d9484a2f84b371e463ed6ac9af7efa5c19604293c082020059bee8cfc8d417a2",
+  "tests": {
+    "nodeHttp": 66,
+    "postgresIntegrationIncludingParent": 9,
+    "staticBrowser": 14,
+    "runtimeBrowser": 12,
+    "syntaxModules": 36,
+    "productionFiles": 3,
+    "productionForbiddenMarkersAbsent": 6
+  },
+  "progress": {
+    "accepted": 10,
+    "total": 12,
+    "percent": 83.33333333333333,
+    "pending": [
+      "R11",
+      "R12"
+    ],
+    "notOverallProductPercent": true
+  },
+  "localBrowser": "blocked-by-administrator; CI browser success is separate",
+  "limitations": [
+    "manual wrappers only",
+    "source mapping not linked",
+    "no historical HMR source graph",
+    "no cloud connectors",
+    "Linux CI only",
+    "memory-only best-effort capture"
+  ],
+  "laterChanges": "Subsequent changes require the subsequent head CI. Latest run is recorded on PR #2."
+}

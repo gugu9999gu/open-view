@@ -1,6 +1,6 @@
 {
   "name": "open-view",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": true,
   "description": "Local-first visual project explorer — design prototype and bounded static scanner.",
   "type": "module",
@@ -13,12 +13,20 @@
     "harness:status": "leerness status .",
     "harness:verify": "leerness verify .",
     "check": "node scripts/check-source.mjs",
-    "test:e2e": "python scripts/check-ui.py"
+    "test:e2e": "python scripts/check-ui.py",
+    "example:runtime": "node scripts/runtime-example.mjs",
+    "build:example": "vite build --config examples/runtime-app/vite.config.mjs",
+    "test:integration": "node --test test/integration/*.test.mjs",
+    "test:runtime-e2e": "python scripts/check-runtime.py"
   },
   "dependencies": {
     "typescript": "5.8.3"
   },
   "devDependencies": {
-    "leerness": "1.36.305"
+    "leerness": "1.36.305",
+    "pg": "8.23.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "vite": "7.3.7"
   }
 }
