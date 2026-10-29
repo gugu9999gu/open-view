@@ -1,0 +1,67 @@
+{
+  "phase": "external-project-connection",
+  "codeCommit": "e7e408674a99611e25ea527db7099d2aa2e33e3d",
+  "codeTree": "f4f7bebbaa8f98dc2286ad78cd3b58cb2c4421cd",
+  "ciRun": 40853572299,
+  "artifactId": 12888601606,
+  "artifactSha256": "ce5b7ed5f4c3af85f9728f357f77705cd84d4dfdf82eef1fe04c40cb2af182d7",
+  "progress": {
+    "criteria": "O01–O10",
+    "passed": 9,
+    "total": 10,
+    "percent": 90,
+    "unverified": [
+      "O10: user-selected actual business project; no target specified"
+    ],
+    "previousRuntimePhase": {
+      "passed": 12,
+      "total": 12
+    },
+    "notWholeProductOrEffort": true
+  },
+  "checks": {
+    "nodeHttp": 97,
+    "postgresqlIncludingParent": 9,
+    "existingBrowser": 14,
+    "runtimeBrowser": 17,
+    "externalConsumerBrowser": 12,
+    "syntaxModules": 49,
+    "sourceArchiveFilesMatched": 121,
+    "npmCi": "passed",
+    "harness": "passed",
+    "trackedSourceUnchanged": "passed"
+  },
+  "production": {
+    "example": {
+      "files": 3,
+      "absentMarkers": 9
+    },
+    "externalConsumer": {
+      "files": 2,
+      "absentMarkers": 8
+    },
+    "maps": "absent in test apps; target sourcemap configuration not rewritten"
+  },
+  "scope": "generated external consumer, not user business project",
+  "environment": {
+    "local": "Node tests/syntax/build passed; registry DNS unavailable; no local package/browser E2E pass claimed",
+    "ci": "Linux/Node22, actual PostgreSQL16, actual Chromium, actual npm pack/install"
+  },
+  "pr": 4,
+  "base": "feat/source-mapping-20261029",
+  "head": "feat/project-connection-20261029",
+  "merged": false,
+  "deployed": false,
+  "npmPublished": false,
+  "version": "0.2.0 Unreleased",
+  "limitations": [
+    "selected explicit inline callbacks only",
+    "Vite7 React19 loopback HTTP, base=/, standalone single root",
+    "separate Node server and DB not automatically connected",
+    "full page HMR, no Node hot reload or React state retention",
+    "bounded in-memory history, manual UI refresh",
+    "source text can contain literals/comments/secrets; no automatic sanitization guarantee",
+    "Windows/macOS and actual business project unverified"
+  ],
+  "finalDocumentationHead": "must be verified by its own CI; final result recorded in PR #4"
+}

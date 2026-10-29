@@ -1,8 +1,8 @@
-# 구현 상태 — R11/R12 소스 연결 후속 개발
+# 구현 상태 — 외부 프로젝트 연결 O01–O10
 
 ## 현재 구현
 
-0.1.1의 인증·worker 정적 분석·전체 검색과 0.2.0의 명시적 Browser/Node SDK·PostgreSQL 경로에 소스 매핑과 HMR 이력 그래프를 추가했다. PR #3은 PR #2 기반이며 main 병합·배포는 하지 않았다. 패키지 버전은 0.2.0으로 유지하고 이번 변경은 Unreleased로 기록한다.
+인증·정적 분석·명시적 Browser/Node/PG 추적·소스/HMR 이력에 외부 프로젝트 연결 CLI와 Vite 어댑터를 추가했다. PR #4는 PR #3 기반이며 main 병합·배포·공개 npm 배포는 하지 않았다. 패키지 버전은 0.2.0으로 유지하고 이번 변경은 Unreleased로 기록한다.
 
 | 영역 | 지원 범위 |
 |---|---|
@@ -13,27 +13,31 @@
 | 소스 보관 | 선택된 원본 코드만 bounded memory 보관, UI 인증 조회, 만료·삭제 시 현재 파일로 대체하지 않음 |
 | HMR | Vite 변경 시 새 build와 전체 reload. 보관된 과거 소스 유지. Node 모듈은 시작 시 고정 |
 | 실행 UI | OBSERVED 목록/상세/삭제, trace별 버전 고정 함수 그래프, 실행 노드 강조, 원본 코드/줄 보기 |
-| 운영 빌드 | 예제 production no-op alias, 수집·trace·source manifest 표식 및 source map 제외 검사 |
+| 운영 빌드 | 공개 browser export의 기본 no-op, 개발에서만 alias. 검증 앱의 개발 표식·source map 부재 검사 |
+| 외부 프로젝트 | init 미리보기/배타적 JSON 생성, 비실행 doctor, --trust-project dev, 대상 설치 Vite/React 진단 |
+| 패키지 소비 | 로컬 npm pack/tarball 설치, 공개 bin/exports, 독립 root 브라우저·기존 API·원본/HMR 검사 |
 
 ## 검증된 범위
 
-코드 `256d6db884902bff0861db45c4d2e12aa080b5dc`, CI `40845242282`:
+코드 `e7e408674a99611e25ea527db7099d2aa2e33e3d`, CI `40853572299`:
 
-- Node/실제 HTTP 82/82, PostgreSQL 9/9(부모 포함), 기존 browser 14/14, React/DB/HMR browser 17/17.
-- JavaScript 42개 구문·인코딩 검사, npm ci, leerness verify, production 3개 파일/9개 개발 표식 부재.
-- 실제 Vite 소스 수정 후 과거 trace의 원본 코드와 새 trace의 변경 코드가 분리되고 DB 저장도 유지됨을 확인.
-- 소스 API의 UI/Agent 권한 분리, record 삭제, TTL/capacity 및 source graph의 추정 연결 방지 검사.
-- CI가 추적 소스를 변경하지 않는 검사 통과. [근거 JSON](validation-source-mapping.json).
+- Node/실제 HTTP 97/97, PostgreSQL 9/9(부모 포함), 기존 browser 14/14, React/DB/HMR browser 17/17, 외부 소비 앱 browser 12/12.
+- JavaScript 49개 구문·인코딩, npm ci, leerness verify, production 제외 검사, 추적 소스 무변경 통과.
+- 실제 npm tarball을 저장소 밖 별도 경로에 설치하고 npm ci/CLI/Vite/기존 API/실제 브라우저를 사용했다.
+- 실제 파일 HMR과 과거 코드 유지, 미선택 파일의 미매핑, 수집 중단 후 앱 작동, 오류 의미·권한 경계를 검증했다.
+- CI archive 121개 파일과 로컬 코드 commit 바이트 일치. [근거 JSON](validation-project-connection.json).
 
-문서 등 후속 커밋은 해당 head CI로 다시 확인한다. 로컬 Chromium navigation은 관리자 정책으로 차단됐다. 이를 모의 통신으로 대체하지 않았으며 실제 PostgreSQL/브라우저 근거는 CI다. Windows/macOS 및 사용자 임의 프로젝트는 미검증이다.
+문서 후속 커밋은 해당 head CI로 다시 확인한다. 로컬 npm DNS는 차단돼 있어 실제 패키지 설치·브라우저를 로컬 통과로 보고하지 않는다. 실제 PostgreSQL/브라우저 근거는 CI다. Windows/macOS와 사용자 업무 프로젝트는 미검증이다.
 
 ## 단계 진행률
 
 [고정된 12개 인수 기준](RUNTIME-DEVELOPMENT.ko.md) **12/12 = 100%**. 실제 저장 경로 단계의 기준 충족률이며 전체 제품 완성률 또는 공수 비율이 아니다. 원래 제품의 자동 설치·다중 프레임워크·클라우드 지원은 별도 개발이다.
 
+[외부 연결 O01–O10](PROJECT-CONNECTION.ko.md)은 별도 **9/10 = 90%**. O10은 사용자 실제 업무 프로젝트 검증이며 생성한 소비 앱으로 대체하지 않는다.
+
 ## 아직 미구현 또는 제한되는 범위
 
-임의 프로젝트 자동 설치, 모든 함수 자동 계측, DOM 데이터 lineage, OpenTelemetry 수신, Supabase/Redis/Firestore/호스팅 커넥터, 지속 저장, VS Code/MCP, 운영 배포는 미구현이다. 실행 UI는 수동 새로고침이다. 소스 그래프는 해당 trace에서 확인된 정의만 표시하며 전체 STATIC 그래프의 라이브 재생은 아니다.
+외부 프로젝트는 수동 패키지 설치/명시적 래퍼만 지원한다. 임의 프로젝트 무설정 자동 설치, 모든 함수 자동 계측, DOM 데이터 lineage, OpenTelemetry 수신, Supabase/Redis/Firestore/호스팅 커넥터, 지속 저장, VS Code/MCP, 운영 배포는 미구현이다. 실행 UI는 수동 새로고침이다. 소스 그래프는 해당 trace에서 확인된 정의만 표시하며 전체 STATIC 그래프의 라이브 재생은 아니다.
 
 소스 매핑은 명시적 inline callback과 선택된 파일에 한정한다. HMR은 전체 reload라서 React 입력 상태가 초기화된다. Node hot reload는 없다. 개발용 Node loader는 상대/`node:` 정적 import만 지원한다. 상세: [소스 연결 계약](SOURCE-MAPPING.ko.md).
 

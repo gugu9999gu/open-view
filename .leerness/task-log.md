@@ -48,3 +48,17 @@ doNotStore:
 ## 2026-10-29 session-close
 - Generated session-handoff.md and refreshed current-state.md.
 - 이번 R11/R12의 verify-claim --run-tests --strict-claims, encoding check, check, session close --no-suggest 종료 코드 0. 자동 산출물 leerness.html/pre-wake-report는 로컬 검증용으로만 보관하고 기능 소스에 추가하지 않는다.
+
+## 2026-10-29 session-close
+- Generated session-handoff.md and refreshed current-state.md.
+
+## 2026-10-29 — 외부 프로젝트 연결
+- T-0008: init/doctor/dev, 엄격한 선택 파일 설정, 대상 Vite 주입, 공개 bin/exports와 production no-op 구현. 기존 UI·collector·relay·소스 registry 재사용.
+- T-0009: O01–O10을 개발 전에 고정했고 O01–O09 검증. O10은 사용자 실제 업무 프로젝트 대상 미지정으로 waiting. 진행률 9/10=90%, R01–R12 12/12 유지.
+- 실패와 수정: 포트 충돌·후속 plugin 실패에서 watcher 정리를 보강하고, async pre-transform 종료 경합을 waitForRequestsIdle 후 종료로 해결. 실패/정상 종료 회귀 테스트 포함.
+- 로컬 npm registry DNS 실패 확인. 정책 우회나 browser fetch mock을 사용하지 않음. 실제 설치/browser/PG 근거는 CI.
+- code e7e40867, tree f4f7bebbaa8f98dc2286ad78cd3b58cb2c4421cd와 로컬 코드 tree 일치. 최초 CI source archive 121개 파일 바이트 전부 일치.
+- CI40853572299 success: Node97/PG9/browser14+17+12, syntax49, production exclusion/npm ci/harness/추적 소스 무변경. artifact12888601606 SHA-256 ce5b7ed5f4c3af85f9728f357f77705cd84d4dfdf82eef1fe04c40cb2af182d7 확인.
+- 실제 외부 소비 앱 screenshot에서 historical source와 미연결 경계 확인. 생성한 검증 앱이며 사용자 업무 프로젝트가 아니다.
+- 종료 코드 0: npm test97/97, check49, verify-claim T-0008 --run-tests --strict-claims, encoding check, leerness check, session close --no-suggest. 일반 문서 4개 수정 advisory는 이번 기능의 사용법/상태/변경 이력으로 요청 범위 내임을 확인.
+- PR #4는 PR #3 기반. main 병합·배포·공개 npm 배포 없음. 문서 후속 head도 동일 CI로 재검증한다. 별도 모델 검수는 실행하지 않았다.

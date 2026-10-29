@@ -28,3 +28,5 @@ Status values: requested, planned, in-progress, waiting, on-hold, blocked, incom
 | T-0005 | done | GitHub Actions 실제 통합 검증 | run 40820622011; Node 44/44; browser 14/14; harness PASS | 현재 head 검증 후 PR 리뷰 | 2026-10-29 |
 | T-0006 | done | 명시적 runtime SDK·PG 계측·OBSERVED UI·통합 검증 | CI 40834192100: Node 66, PG 9, browser 14+12 | 최종 head 회귀 및 PR #2 검토 | 2026-10-29 |
 | T-0007 | done | R11 R12 소스 manifest 연결 및 HMR 과거 코드 그래프 | docs/validation-source-mapping.json; test/source-mapping.test.mjs; CI 40845242282 Node82 PG9 browser14+17 | PR #3 최종 head 회귀 및 사용자 프로젝트 연결 | 2026-10-29 |
+| T-0008 | done | 외부 프로젝트 연결 CLI·진단·선택적 계측 검증 | docs/validation-project-connection.json; code e7e40867; CI40853572299 Node97 PG9 browser14+17+12; O01-O09 passed, O10 not included | PR #4 final head CI and review | 2026-10-29 |
+| T-0009 | waiting | 외부 프로젝트 연결 O01–O10 | O01-O09 verified, 9/10=90%; O10 target business project not specified | Obtain a user-selected business-project path/repository and test O10 without production changes | 2026-10-29 |

@@ -2,9 +2,9 @@
 
 웹 프로젝트의 **페이지 → 함수 → API → DB** 관계를 눈으로 확인하는 로컬 개발 도구의 설계·프로토타입입니다.
 
-**현재 상태: 정적 분석 + 명시적 Browser/Node 계측 + 실제 PostgreSQL 저장 추적 + 선택된 함수의 정확한 소스 연결·HMR 이력 그래프. 임의 프로젝트의 모든 함수 자동 계측은 아직 지원하지 않습니다.**
+**현재 상태: 정적 분석 + 명시적 Browser/Node 계측 + 실제 PostgreSQL 저장 추적 + 소스/HMR 이력 + 외부 Vite 프로젝트 연결 CLI·진단. 모든 함수 자동 계측은 아직 지원하지 않습니다.**
 
-R01–R12 실제 저장 경로 단계의 인수 기준은 12/12 통과했습니다. 전체 제품 완성률은 아닙니다. 소스 연결 변경은 PR #3의 Unreleased 변경이며 main 병합·배포는 하지 않았습니다.
+R01–R12 실제 저장 경로 단계의 인수 기준은 12/12 통과했습니다. 전체 제품 완성률은 아닙니다. 외부 프로젝트 연결은 별도 O01–O10 중 9/10(90%)이며 실제 사용자 업무 프로젝트 검증 O10이 남았습니다. PR #4는 PR #3 기반의 Unreleased 변경이며 main 병합·배포·공개 npm 배포는 하지 않았습니다.
 
 ## 실행
 
@@ -27,6 +27,28 @@ UI는 ES module로 분리되어 있으므로 `file://`로 열지 말고 서버�
 
 전체 분석 결과를 검색할 수 있으며, 캔버스에만 최대 100개를 표시합니다. 검색 결과를 선택하면 해당 노드와 이웃을 표시합니다. 스캔 상한/읽기 오류는 **부분 분석**과 사유로 표시됩니다.
 
+## 외부 Vite 프로젝트 연결
+
+설치 가능한 로컬 패키지와 `init → doctor → dev` 절차를 제공한다. 공개 npm에 배포한 패키지가 아니므로 동명 레지스트리 패키지를 설치하지 않는다.
+저장소에서 `npm pack --ignore-scripts`로 만든 `open-view-0.2.0.tgz`를 대상 프로젝트에 설치한 뒤 실행한다.
+
+```bash
+# 대상 프로젝트 폴더에서; 실제 tarball 경로와 source 파일로 변경
+npm install --save-dev /absolute/path/to/open-view/open-view-0.2.0.tgz
+npx --no-install open-view init --source src/App.jsx
+npx --no-install open-view init --source src/App.jsx --write
+npx --no-install open-view doctor --json
+npx --no-install open-view dev --trust-project
+```
+
+init 기본값은 미리보기다. --write는 신규 JSON만 생성하며 기존 설정을 덮어쓰지 않는다.
+doctor는 프로젝트 설정/스크립트를 실행하지 않고 .env를 읽지 않는다. dev는 신뢰한 기존 Vite 설정·플러그인을 실행한다.
+설치/파일 선택만으로 추적되지 않으며 `open-view/browser`의 명시적 래퍼를 적용해야 한다.
+검증 범위는 Node22/Vite7/React19, 단일 root, base=/, 루프백 HTTP다. 기존 소스·Vite config·npm scripts의 자동 수정은 하지 않는다.
+패키지 설치 자체의 package.json/lockfile 변경은 npm의 정상 동작이다. 원본 소스의 비밀값 제거를 보장하지 않는다.
+
+[설치·계측·운영 경계 및 10개 기준](docs/PROJECT-CONNECTION.ko.md) · [검증 기록](docs/validation-project-connection.json)
+
 ## 실제 실행 예제
 
 전용 로컬 DB를 준비한 후 실행합니다. `.env` 자동 탐색이나 운영 DB 자동 연결은 하지 않습니다.
@@ -47,6 +69,7 @@ npm run example:runtime
 
 ## 문서
 
+- [외부 프로젝트 연결 및 지원 범위](docs/PROJECT-CONNECTION.ko.md)
 - [상세 제품 설계](docs/PRODUCT-DESIGN.ko.md)
 - [구현 상태와 한계](docs/IMPLEMENTATION-STATUS.md)
 - [정확한 소스 연결·HMR 이력 계약](docs/SOURCE-MAPPING.ko.md)
@@ -69,6 +92,8 @@ npm run test:e2e
 E2E는 인증·쿠키 비사용·다른 포트 격리·실제 스캔·100개 이후 검색·export·로그아웃을 실제 HTTP로 검사합니다. 브라우저 접속이 차단된 환경에서는 실패를 기록하며 모의 통신으로 대체하지 않습니다. 결과는 `artifacts/e2e/results.json`에 남깁니다.
 
 PR 검증은 `contents: read`, `npm ci`, 실제 E2E를 사용하고 소스를 자동 수정하거나 커밋하지 않습니다. 0.2.0부터 별도의 PostgreSQL 서비스와 React 브라우저 E2E도 실행합니다. `npm run test:integration`에는 실제 DB 연결이 필요하며, `npm run test:runtime-e2e`는 실제 클릭과 DB 레코드를 교차 검증합니다.
+
+`npm run test:connection-e2e`는 저장소 밖의 검증용 프로젝트에 실제 tarball을 설치하고 브라우저·기존 API·소스·HMR·production을 검사합니다. 사용자 업무 프로젝트 검증을 대신하지 않습니다.
 
 ## leerness
 

@@ -58,10 +58,23 @@ Progress: 100% (고정 R01–R12 12개 검증, 전체 제품/공수 비율 아�
 - 증거: code 10e0a0c3, CI 40834192100; 후속 수정은 새 head CI 별도 확인.
 
 ### M-0004. 사용자 프로젝트 연결과 지원 범위 확장
-Status: planned
+Status: in-progress
+Progress: 초기 연결 범위는 M-0005의 O01–O10으로 추적, 나머지 확장은 별도 범위
 - 실제 사용자 프로젝트 한 개에 명시적 설치/설정과 지원 범위 진단을 적용한다.
 - 선택적 자동 계측·원본/변환 sourcemap·실시간 갱신은 별도 인수 기준으로 정의한다.
 - Supabase/Firestore/Redis/호스팅 커넥터와 영구 저장은 이후 범위다.
-- 이 계획은 아직 구현·검증되지 않았으며 기존 R01–R12 진행률 분모를 변경하지 않는다.
+- 연결 CLI/진단/소비 앱 검증은 M-0005에 구현했다. 사용자 실제 프로젝트와 후속 확장은 미완료이며 기존 R01–R12 분모는 변경하지 않는다.
 
 R11/R12 근거: code 256d6db8, CI 40845242282, docs/validation-source-mapping.json.
+
+### M-0005. 외부 프로젝트 연결 O01–O10
+Status: waiting
+Progress: 90% (고정 O01–O10 9개 검증, 전체 제품/공수 비율 아님)
+Done-When: docs/PROJECT-CONNECTION.ko.md O01–O10 검증, 사용자 실제 프로젝트를 검증 앱으로 대체하지 않음
+
+Tasks:
+- [x] O01–O04 설정·진단·보안 경계·Vite 수명주기
+- [x] O05–O09 실제 npm tarball 설치·외부 브라우저/API·HMR·production·기존 회귀
+- [ ] O10 사용자 지정 업무 프로젝트 인수 검증 (대상 미지정)
+- 근거: code e7e40867, CI40853572299, docs/validation-project-connection.json.
+

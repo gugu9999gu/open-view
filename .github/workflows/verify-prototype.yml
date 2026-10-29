@@ -67,6 +67,8 @@ jobs:
         run: npm run test:e2e
       - name: React to PostgreSQL browser E2E
         run: npm run test:runtime-e2e
+      - name: External package consumer E2E
+        run: npm run test:connection-e2e
       - name: Ensure verification did not rewrite tracked source
         run: git diff --exit-code
       - name: Archive tracked source
