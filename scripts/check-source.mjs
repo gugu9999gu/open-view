@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 
 const files = ['server.mjs'];
-for (const directory of ['lib', 'public', 'test', 'scripts']) {
+for (const directory of ['lib', 'public', 'test', 'scripts', 'runtime', 'examples/runtime-app', 'examples/runtime-app/src', 'test/integration']) {
   for (const name of await fs.readdir(directory)) if (name.endsWith('.mjs')) files.push(`${directory}/${name}`);
 }
 for (const file of files) {
