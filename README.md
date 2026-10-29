@@ -9,35 +9,44 @@
 Node.js 22 이상이 필요합니다.
 
 ```bash
-npm install
+npm ci
 npm start
 ```
 
-터미널에 표시된 `http://127.0.0.1:4317/#token=...` 전체 URL을 여세요. 인증 뒤 주소에서 토큰이 제거됩니다. 초기 화면은 **DEMO**입니다. 예시 페이지 안의 저장 버튼, 시나리오 선택, 노드/간선 선택, 검색, zoom/pan, 데이터 출처 화면을 사용할 수 있습니다. 합성 트레이스는 실제 API를 호출하지 않습니다.
+터미널에 표시된 `http://127.0.0.1:4418/#token=...` 전체 URL을 여세요. 로그인 링크는 5분 내 한 번만 사용할 수 있습니다. 인증 뒤 주소에서 토큰이 제거되고 별도의 8시간 UI 세션이 탭의 sessionStorage에 저장됩니다. 쿠키로 인증하지 않습니다. 로그아웃/만료 후에는 터미널에 `auth`를 입력해 새 링크를 받으세요. 초기 화면은 **DEMO**입니다. 예시 페이지 안의 저장 버튼, 시나리오 선택, 노드/간선 선택, 검색, zoom/pan, 데이터 출처 화면을 사용할 수 있습니다. 합성 트레이스는 실제 API를 호출하지 않습니다.
 
 ```bash
-npm start -- --project "/absolute/path/to/project" --port 4317
+npm start -- --project "/absolute/path/to/project" --port 4418
 ```
 
 **폴더 분석**을 누르면 지정한 폴더의 실제 JS/TS 선언, 상대 import 기반 함수 호출, JSX 이벤트 핸들러, 제한된 파일 라우트를 읽습니다. SDK import는 실제 DB 연결의 증거가 아닙니다. 대상 파일을 수정하거나 실행하지 않습니다.
 
-`public/index.html`은 외부 리소스 없는 독립 시안입니다. 브라우저에서 파일을 열어 시연할 수 있지만, 실제 폴더 분석에는 위 서버가 필요합니다. 브라우저 정책에 따라 파일 열기가 제한되면 서버 모드를 사용하세요.
+UI는 ES module로 분리되어 있으므로 `file://`로 열지 말고 서버로 접속하세요. 포트 충돌 시 `--port 0`으로 사용 가능한 포트를 선택할 수 있습니다.
+
+전체 분석 결과를 검색할 수 있으며, 캔버스에만 최대 100개를 표시합니다. 검색 결과를 선택하면 해당 노드와 이웃을 표시합니다. 스캔 상한/읽기 오류는 **부분 분석**과 사유로 표시됩니다.
 
 ## 문서
 
 - [상세 제품 설계](docs/PRODUCT-DESIGN.ko.md)
 - [구현 상태와 한계](docs/IMPLEMENTATION-STATUS.md)
-- [UI/HTTP 검증 결과](docs/ui-test-results.json)
+- [검수 보강과 구현 계약](docs/HARDENING-AND-CONTRACTS.ko.md)
+- [0.1.1 로컬 검증 기록](docs/validation-0.1.1.json)
+- [초기 0.1 UI/HTTP 검사 기록 — 현재 E2E 결과 아님](docs/ui-test-results.json)
 
 ## 테스트
 
 ```bash
+npm run check
 npm test
-# 선택: Python playwright 및 Chromium이 설치된 환경
-python scripts/check-ui.py
+# 실제 브라우저 → 로컬 서버 E2E
+python -m pip install -r scripts/requirements-test.txt
+python -m playwright install chromium
+npm run test:e2e
 ```
 
-UI 테스트는 브라우저 렌더링과 HTTP API를 분리 검사합니다. 전체 browser-network E2E 완료로 해석하지 마세요. 검사 범위/제한은 결과 JSON에 남깁니다.
+E2E는 인증·쿠키 비사용·다른 포트 격리·실제 스캔·100개 이후 검색·export·로그아웃을 실제 HTTP로 검사합니다. 브라우저 접속이 차단된 환경에서는 실패를 기록하며 모의 통신으로 대체하지 않습니다. 결과는 `artifacts/e2e/results.json`에 남깁니다.
+
+PR 검증은 `contents: read`, `npm ci`, 실제 E2E를 사용하고 소스를 자동 수정하거나 커밋하지 않습니다. 런타임 SDK/DB 추적 검증은 아직 아닙니다.
 
 ## leerness
 

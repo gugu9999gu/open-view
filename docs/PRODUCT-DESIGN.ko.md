@@ -1,8 +1,10 @@
 # Open View — 웹 프로젝트 시각화·실행 검증 도구 설계
 
-설계 기준일: 2026-10-29 · 문서 버전: 0.1 · 상태: 제품 설계 + 조작형 UI 프로토타입 + 제한된 정적 분석 서버
+설계 기준일: 2026-10-29 · 문서 버전: 0.1.1 · 상태: 제품 설계 + 조작형 UI 프로토타입 + 제한된 정적 분석 서버
 
 > **완료 범위:** 조작 가능한 예시 페이지, 노드 맵, 합성 타임라인, 더미 폴백/오류 시연, 실제 JS/TS 폴더의 정적 분석. **미완료 범위:** 임의 프로젝트에 자동 설치되는 런타임 SDK, 실제 DB/호스팅 연결 검증, 모든 함수 자동 계측. 이 문서의 목표 기능을 현재 구현으로 해석하지 않는다.
+
+> 0.1.1의 인증·정적 소스 식별·부분 분석·검색·실행 전파·저장 판정에 대한 구체적 계약은 [검수 보강과 구현 계약](HARDENING-AND-CONTRACTS.ko.md)을 따른다. 해당 문서는 구현된 항목과 다음 런타임 단계의 목표를 구분한다.
 
 ## 1. 제품 정의
 
@@ -42,16 +44,16 @@ Open View는 개발 중인 웹 프로젝트의 **페이지 → UI 이벤트 → 
 ### 현재 저장소에서 실행하는 방법
 
 ```bash
-npm install
+npm ci
 npm start
 # 기본 대상: examples/demo-project
 
 # 별도 프로젝트의 소스 구조만 분석
-npm start -- --project "/absolute/path/to/my-web-project" --port 4317
+npm start -- --project "/absolute/path/to/my-web-project" --port 4418
 ```
 
-Windows의 예: `npm start -- --project "C:\\workspace\\my-web-project" --port 4317`.
-터미널의 `http://127.0.0.1:4317/#token=...` 전체 URL로 접속한다. 인증 후 토큰은 주소에서 제거되고 HttpOnly 세션 쿠키로 전환된다. 초기 화면은 UI 시연이며 **폴더 분석**을 눌러야 실제 정적 분석 결과가 보인다. 현재 서버는 대상 코드를 실행하지 않으며 개발 서버를 대신 시작하지 않는다.
+Windows의 예: `npm start -- --project "C:\\workspace\\my-web-project" --port 4418`.
+터미널의 `http://127.0.0.1:4418/#token=...` 전체 URL로 접속한다. 로그인 링크는 5분 내 한 번만 사용 가능하며, 인증 후 주소에서 제거된다. 별도의 UI Bearer 세션을 발급하고 sessionStorage에 보관한다. 쿠키 인증은 사용하지 않는다. 세션은 서버 기준 8시간 만료이며 로그아웃으로 철회한다. 터미널의 `auth` 명령으로 새 링크를 발급한다. 초기 화면은 UI 시연이며 **폴더 분석**을 눌러야 실제 정적 분석 결과가 보인다. 현재 서버는 대상 코드를 실행하지 않으며 개발 서버를 대신 시작하지 않는다.
 
 ## 4. 전체 아키텍처
 
@@ -70,14 +72,14 @@ Windows의 예: `npm start -- --project "C:\\workspace\\my-web-project" --port 4
                                └─ HTTP + SSE/WS [계획]
                                             │
                                             ▼
-                          Open View UI :4317
+                          Open View UI :4418
                           파일 트리 / 페이지 노드 / 함수·API·DB
                           Inspector / Timeline / Data provenance
 ```
 
 분석 대상 DB에 Open View 데이터를 저장하지 않는다. 최초 저장소는 프로젝트별 `.open-view/`의 SQLite와 필요 시 크기 제한된 trace 파일을 권장한다. 현재 프로토타입은 분석 결과를 메모리에서 반환하며 지속 저장·스트리밍은 없다.
 
-React + TypeScript + React Flow를 정식 UI의 기본안으로 잡는다. React Flow의 custom node 및 `nodrag`/`nopan` 상호작용을 활용하고, ELK 계열 레이아웃 엔진은 대규모 자동 배치의 후보로 둔다. 현재 시안은 다운로드 후 바로 열 수 있도록 외부 리소스가 없는 HTML/CSS/JS와 SVG로 구현했다. 이는 정식 프레임워크 구현과 구분한다.
+React + TypeScript + React Flow를 정식 UI의 기본안으로 잡는다. React Flow의 custom node 및 `nodrag`/`nopan` 상호작용을 활용하고, ELK 계열 레이아웃 엔진은 대규모 자동 배치의 후보로 둔다. 현재 시안은 외부 CDN 없이 HTML/CSS/ES module과 SVG로 구현하고 로컬 서버에서 제공한다. file:// 직접 실행은 지원하지 않는다. 이는 정식 프레임워크 구현과 구분한다.
 
 ## 5. 노드와 연결의 도메인 모델
 
@@ -85,10 +87,10 @@ React + TypeScript + React Flow를 정식 UI의 기본안으로 잡는다. React
 
 **연결 종류:** contains, declares, imports, renders, handles-event, calls, sends-request, handles-request, queries, reads, writes, invalidates, returns, updates-state, renders-value, deployed-to, runs-on, falls-back-to, derived-from. 코드에서 import한 관계와 실제 호출 관계는 같은 간선으로 대체하지 않는다.
 
-노드의 식별자는 프로젝트 ID + 상대 파일 경로 + 심볼 식별자 + 빌드 버전으로 설계한다. 파일 라인만으로 장기 식별하지 않는다. 코드가 바뀌면 과거 trace에는 당시의 revision을 유지하고 최신 코드와 불일치를 표시한다. 현재 초기 scanner의 ID는 경로와 AST 위치 기반이며 HMR/버전 간 안정 ID는 아직 없다.
+노드의 식별자는 프로젝트 ID + 상대 파일 경로 + 심볼 식별자 + 빌드 버전으로 설계한다. 파일 라인만으로 장기 식별하지 않는다. 코드가 바뀌면 과거 trace에는 당시의 revision을 유지하고 최신 코드와 불일치를 표시한다. 현재 scanner는 내용 기반 sourceSnapshotId와 함수별 sourceRef를 구현했다. 이는 정적 소스 스냅샷이며 실제 런타임 buildId, HMR 매핑, 버전 간 논리 ID는 아직 없다.
 
 ```ts
-// 목표 스키마. 현 프로토타입의 schemaVersion:1보다 확장된 설계이다.
+// 목표 스키마. 현 정적 프로토타입의 schemaVersion:2와 구분되는 런타임 목표 설계이다.
 type EvidenceKind = 'static' | 'runtime' | 'config' | 'manual' | 'demo';
 interface Evidence {
   id: string;
@@ -132,7 +134,7 @@ RoutePattern과 PageInstance를 분리한다. 패턴은 `/products/[id]`, 인스
 
 CSP `frame-ancestors`, `X-Frame-Options`, OAuth 리다이렉트, 쿠키 제한 때문에 iframe이 불가능할 수 있다. 그때는 **별도 탭에서 실제 페이지를 조작하고 Open View에서 추적**하는 연결 모드를 제공한다. 개발용 설정 변경은 허용할 정확한 origin만 추가하고 사용자 승인 뒤 적용한다. 보안 헤더 전체 삭제나 운영 사이트 프록시 우회를 기본 해결책으로 사용하지 않는다.
 
-현재 시안의 iframe은 외부 사이트가 아닌 자체 생성한 예시 HTML이며 `sandbox=allow-scripts`로 격리한다. 이 시연에 한해 opaque origin과 frame source, nonce를 확인한다. 파일로 여는 데모의 메시지는 민감 정보 없는 고정 이벤트뿐이다. 이 방식은 실서비스 SDK 통신의 보안 설계를 대신하지 않는다.
+현재 시안의 iframe은 외부 사이트가 아닌 자체 생성한 예시 HTML이며 `sandbox=allow-scripts`로 격리한다. 이 시연에 한해 opaque origin과 frame source, nonce를 확인한다. 로컬 서버가 제공하는 데모 메시지는 민감 정보 없는 고정 이벤트뿐이다. 이 방식은 실서비스 SDK 통신의 보안 설계를 대신하지 않는다.
 
 ## 8. 버튼 → 함수 → 요청의 정확한 연결
 
@@ -225,13 +227,13 @@ AI는 필수 의존성이 아니다. 원본 코드·개인정보를 외부 모�
 
 ## 14. 서버·저장소·프로토콜 설계
 
-목표 API는 `/v1/projects`, `/v1/graph`, `/v1/routes`, `/v1/traces`, `/v1/provenance`, `/v1/evidence`, `/v1/events`로 분리한다. 모두 schemaVersion과 project/session scope를 요구한다. 읽기 전용 조회와 agent 수집 채널의 권한을 분리한다. UI cookie를 대상 iframe에 넘기지 않고, agent에는 프로젝트/환경 제한된 수집 권한만 발급한다.
+목표 API는 `/v1/projects`, `/v1/graph`, `/v1/routes`, `/v1/traces`, `/v1/provenance`, `/v1/evidence`, `/v1/events`로 분리한다. 모두 schemaVersion과 project/session scope를 요구한다. 읽기 전용 조회와 agent 수집 채널의 권한을 분리한다. UI Bearer 자격 증명을 대상 iframe이나 다른 origin으로 넘기지 않고, agent에는 프로젝트/환경 제한된 수집 권한만 발급한다.
 
 이벤트 envelope는 eventId, schemaVersion, projectId, sessionId, buildId, source, sequence, traceId/spanId/parentSpanId, interactionId, timestamp, monotonicDuration, droppedCount를 갖는다. 중복 제거, out-of-order 수신, 누락 이벤트, clock skew, 취소를 처리한다. collector 장애가 대상 앱의 오류가 되지 않도록 bounded queue + timeout + drop notice를 사용한다.
 
 저장 테이블은 projects, revisions, files, symbols, routes, graph_nodes, graph_edges, evidence, traces, spans, provenance_sources, provenance_links, sessions, policy_exceptions로 나눈다. 인덱스는 project+revision, traceId+spanId, relativePath+symbol, observedAt을 우선한다. trace와 source snapshot의 TTL, 총량 제한, 전체 삭제를 제공한다. 원본 body는 기본 저장하지 않는다.
 
-초기 설계 상한은 활성 iframe 1~2개, 화면 렌더 노드 300개 안팎, 표시 body opt-in 최대 32KB, 수집 batch 상한과 bounded queue로 잡는다. 이 값들은 **성능 보장 수치가 아니라 검증할 설계 시작값**이다. 현재 프로토타입은 파일 1,500개, 파일당 512KB, 합계 24MB, 디렉터리 깊이 20, UI 표시 100개 상한을 사용한다.
+초기 설계 상한은 활성 iframe 1~2개, 화면 렌더 노드 300개 안팎, 표시 body opt-in 최대 32KB, 수집 batch 상한과 bounded queue로 잡는다. 이 값들은 **성능 보장 수치가 아니라 검증할 설계 시작값**이다. 현재 프로토타입은 파일 1,500개, 파일당 512KiB, 합계 24MiB, 깊이 20, 디렉터리 3,000개, 엔트리 30,000개, 탐색 10초, worker 30초, UI 표시 100개 상한을 사용한다. 전체 검색과 export는 UI 표시 상한과 분리한다.
 
 ## 15. 계측 범위와 설치 철회
 
@@ -243,7 +245,8 @@ AI는 필수 의존성이 아니다. 원본 코드·개인정보를 외부 모�
 
 | 단계 | 범위 | 완료 판정 |
 |---|---|---|
-| S0: 현재 | 설계·UI 시연·제한된 정적 분석 | 예시와 실제 분석 분리, 기본 스캐너/보안/UI 테스트 |
+| S0: 현재 | 설계·UI 시연·정적 분석·보안 보강 | 44개 Node/HTTP 테스트, 실제 브라우저 E2E, 부분 분석·전체 검색 |
+| S0.2: 다음 | React/Vite + Node + PostgreSQL 한 경로, 명시적 래퍼 | 실제 클릭→서버→DB와 commit/rollback/fallback 구분 |
 | S1: 구조 탐색 | React/Vite adapter, route manifest, 안정 symbol IDs, watcher | 실제 프로젝트의 scope/import/라우트 fixture 회귀 테스트 |
 | S2: 브라우저 관측 | 클릭·fetch/XHR·오류·source mapping·선택적 핸들러 계측 | 동시 클릭 2개 및 polling이 서로 잘못 연결되지 않음 |
 | S3: 백엔드·데이터 | Node API, PostgreSQL/Redis adapter, Supabase HTTP, provenance | 요청→서버→DB span 연결, 실패/재시도/캐시/fixture 증거 |
@@ -257,7 +260,7 @@ MVP 목표는 “예시 프로젝트에서 고객 저장 버튼 한 번을 실�
 - 병렬 클릭/재시도/취소/백그라운드 요청을 잘못 한 trace로 합치지 않는다.
 - iframe이 막히면 차단 원인과 별도 탭 모드를 제공한다.
 - SDK 의존성만 있는 DB를 connected/healthy로 표시하지 않는다.
-- 요청 실패 후 fixture 반환을 DB 저장 성공으로 표시하지 않는다.
+- 커밋 근거 없는 fixture 반환을 저장 성공으로 표시하지 않는다. 이미 관측한 커밋은 후속 오류·fixture 반환 때문에 실패로 덮어쓰지 않는다.
 - 원격 seed 데이터, 실제 enum 상수, 캐시된 fixture에 대한 오탐을 검사한다.
 - 토큰/비밀번호/개인정보가 collector·저장소·export에 남지 않는지 canary로 검증한다.
 - 계측 전후 함수 return/throw/this/Promise 동작과 앱 회귀 테스트 결과가 같다.
@@ -268,20 +271,28 @@ MVP 목표는 “예시 프로젝트에서 고객 저장 버튼 한 번을 실�
 ## 17. 저장소 구성과 실제 구현 상태
 
 ```text
-public/index.html                 # 외부 리소스 없는 조작형 UI 시안
-server.mjs                        # loopback 인증 + 실제 정적 graph API
+public/index.html                 # UI 레이아웃과 스타일
+public/app.mjs                    # 조작형 노드맵과 DEMO/STATIC UI
+public/graph-model.mjs            # 전체 검색과 캔버스 부분집합
+public/session-client.mjs         # 동일 origin UI 인증 전송
+server.mjs                        # loopback 인증 + 정적 graph API
+lib/auth.mjs                     # 일회용 bootstrap, 만료·철회 세션
 lib/scanner.mjs                   # TypeScript 5.8.3 AST 제한 분석
+lib/source-files.mjs              # 상한 있는 소스 탐색·부분 분석 사유
+lib/scan-runner.mjs               # worker 격리·종료 기한
+lib/observation-contract.mjs      # 저장 결과·전파 정책 순수 함수
 examples/demo-project/            # 명시적인 샘플 프로젝트
- test/scanner.test.mjs            # 기본 6개 Node 테스트
-scripts/check-ui.py               # 브라우저 렌더링 + 별도 HTTP 검증
- docs/ui-test-results.json        # 실제 실행한 15개 검증 결과와 제한
- docs/PRODUCT-DESIGN.ko.md         # 이 설계서
- docs/IMPLEMENTATION-STATUS.md     # 구현/미구현 경계와 실행 안내
- .leerness/                       # CLI로 생성된 프로젝트 운영 하네스
- AGENTS.md / CLAUDE.md            # leerness 생성 지침
+test/*.test.mjs                   # 44개 Node/HTTP 회귀 테스트
+scripts/check-ui.py               # 실제 브라우저→서버 E2E
+artifacts/e2e/results.json        # 실행별 결과, git 제외·CI artifact
+docs/ui-test-results.json         # 이전 0.1의 분리 검사 기록
+docs/HARDENING-AND-CONTRACTS.ko.md # 구체적 보강·다음 단계 계약
+docs/IMPLEMENTATION-STATUS.md     # 구현/미구현 경계
+.leerness/                        # 프로젝트 운영 하네스
+AGENTS.md / CLAUDE.md             # leerness 생성 지침
 ```
 
-정식 제품에서는 cli, analyzer, graph-core, browser-agent, node-agent, compiler-plugin, adapters, ui, test-fixtures 패키지로 나눈다. 현재 단일 HTML을 그대로 거대한 정식 UI 코드베이스로 확장하지 않는다.
+정식 제품에서는 cli, analyzer, graph-core, browser-agent, node-agent, compiler-plugin, adapters, ui, test-fixtures 패키지로 나눈다. 현재 ES module 시안을 그대로 거대한 정식 UI 코드베이스로 확장하지 않는다.
 
 ## 18. leerness 역할
 
@@ -291,9 +302,11 @@ leerness는 대상 프로젝트의 실제 실행을 관측하는 엔진이 아�
 
 ## 19. 현재 검증과 남은 제한
 
-로컬 Linux 환경에서 Node 기본 테스트 6개, UI/HTTP 검증 15개를 실행했다. UI는 Chromium에 HTML을 주입하여 실제 DOM·iframe 버튼·시나리오·검색·zoom·export를 검사했다. API 인증/Origin/Host/파일 접근은 실제 HTTP로 별도 검사했다. 컨테이너 브라우저의 navigation 정책 때문에 **브라우저가 서버에 직접 접속하는 전체 E2E는 수행하지 못했다**. 테스트 스크립트와 JSON 결과에 이 제한을 남겼다.
+초기 0.1에서는 로컬 Linux 환경에서 Node 기본 테스트 6개, UI/HTTP 검증 15개를 실행했다. UI는 Chromium에 HTML을 주입하여 실제 DOM·iframe 버튼·시나리오·검색·zoom·export를 검사했다. API 인증/Origin/Host/파일 접근은 실제 HTTP로 별도 검사했다. 컨테이너 브라우저의 navigation 정책 때문에 **브라우저가 서버에 직접 접속하는 전체 E2E는 수행하지 못했다**. 테스트 스크립트와 JSON 결과에 이 제한을 남겼다.
 
 Windows/macOS, 실제 사용자 프로젝트의 개발서버, Supabase/Firestore/Redis 실연결, OTel context propagation, HMR, 배포 차단은 아직 검증하지 않았다. 현재 프로토타입은 보안 감사 완료 제품이 아니므로 외부 네트워크에 공개하지 않는다.
+
+0.1.1에서는 Node/HTTP 회귀 테스트 44개와 소스 검사 18개 모듈을 검증했다. 새 브라우저 테스트는 실제 서버 navigation을 요구한다. 로컬 환경에서는 관리자 정책으로 차단되었으며 PR Actions 결과와 artifact를 별도로 확인해야 한다. 이전 15개 UI 결과를 새 버전의 E2E 통과 근거로 재사용하지 않는다. 코드 커밋 `6b0ffdf91c30d4542346861b514af82b86e44c94`의 PR CI run `40820622011`에서는 npm ci·leerness verify·44개 Node 테스트·14개 실제 브라우저 E2E 항목이 통과했다.
 
 ## 20. 공식 기술 근거
 

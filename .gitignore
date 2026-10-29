@@ -23,3 +23,6 @@ node_modules/
 *.log
 __pycache__/
 .DS_Store
+
+# Generated test evidence (CI uploads this separately)
+artifacts/

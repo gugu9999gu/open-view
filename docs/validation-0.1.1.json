@@ -1,0 +1,47 @@
+{
+  "version": "0.1.1",
+  "date": "2026-10-29",
+  "baseCommit": "6f6689b2c40ae337c5f25d6a4f6ca2e7317192b5",
+  "node": "22.16.0",
+  "typescript": "5.8.3",
+  "checks": {
+    "npm test": {
+      "passed": 44,
+      "failed": 0
+    },
+    "npm run check": {
+      "modules": 18,
+      "status": "passed"
+    },
+    "browser-network-e2e": {
+      "status": "blocked",
+      "reason": "ERR_BLOCKED_BY_ADMINISTRATOR at initial navigation; no mocked fallback"
+    },
+    "npm ci": {
+      "status": "not-run-locally",
+      "reason": "Container DNS unavailable; tests used preinstalled matching TypeScript 5.8.3"
+    },
+    "leerness CLI": {
+      "status": "not-run-locally",
+      "reason": "Pinned dependency not locally installed; CI is configured to verify it"
+    }
+  },
+  "ci": "Local results and pinned CI evidence are distinguished. For later changes, check the commit-specific Actions run and open-view-verification artifact.",
+  "notImplemented": [
+    "runtime SDK",
+    "actual database tracing",
+    "HMR source manifest",
+    "cloud connectors"
+  ],
+  "ciEvidence": {
+    "runId": 40820622011,
+    "headCommit": "6b0ffdf91c30d4542346861b514af82b86e44c94",
+    "testedMergeCommit": "82f347321bf97677b4ec96cc9895ab2148c036de",
+    "status": "success",
+    "nodeTestsPassed": 44,
+    "browserChecksPassed": 14,
+    "npmCi": "passed",
+    "leernessVerify": "passed",
+    "artifactId": 12874097734
+  }
+}
