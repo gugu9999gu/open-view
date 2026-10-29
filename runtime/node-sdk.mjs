@@ -4,7 +4,7 @@ import { normalizeOutcome } from '../lib/observation-contract.mjs';
 /** Explicit wrappers only. No global patches or request/SQL payload capture. */
 export function createNodeTracer({ emitter } = {}) {
   const storage = new AsyncLocalStorage();
-  async function span(name, callback, { kind = 'function', remote = null } = {}) {
+  async function span(name, callback, { kind = 'function', remote = null, source = null } = {}) {
     const parent = remote || storage.getStore();
     const context = { traceId: parent?.traceId || randomId(), spanId: randomId(8),
       parentSpanId: parent?.spanId || parent?.parentSpanId || null, interactionId: parent?.interactionId || null };
@@ -14,7 +14,7 @@ export function createNodeTracer({ emitter } = {}) {
       try { return await callback(control); }
       catch (error) { status = error?.name === 'AbortError' ? 'cancelled' : 'error'; throw error; }
       finally {
-        try { emitter.emit({ ...context, kind, name, startedAt, durationMs: performance.now() - started, status, outcome }); } catch { /* Observability cannot replace application result. */ }
+        try { emitter.emit({ ...context, source, kind, name, startedAt, durationMs: performance.now() - started, status, outcome }); } catch { /* Observability cannot replace application result. */ }
       }
     });
   }

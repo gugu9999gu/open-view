@@ -1,8 +1,17 @@
+import { renderSourceGraph } from './source-view.mjs';
 /** Keep OBSERVED records separate from the demo/static graph; never infer source links by name. */
 export function createRuntimeView({ root, request, ready }) {
   // Unrelated DEMO/STATIC side panels must not appear to explain an observed trace.
   const chrome = document.createElement('style');
   chrome.textContent = `
+    .source-section{margin:20px 0;padding:16px;border:1px solid #354959;border-radius:8px}
+    .source-viewport{overflow:auto;max-height:430px;background:#0d151d;border-radius:8px}
+    .source-canvas{position:relative}.source-lines{position:absolute;inset:0;pointer-events:none}
+    .source-edge{fill:none;stroke:#77e6bc;stroke-width:2;opacity:.65}
+    .source-node{position:absolute;display:flex;flex-direction:column;gap:6px;width:260px;min-height:130px;padding:12px;text-align:left;border:2px solid #77e6bc;border-radius:9px;background:#172d29;cursor:pointer}
+    .source-node.selected{outline:2px solid #8fbaff;outline-offset:3px}.source-node span{font-size:10px;overflow-wrap:anywhere}
+    .source-node strong{font-size:13px}.source-preview{overflow-wrap:anywhere}.source-preview pre{max-height:400px;overflow:auto}
+
     body:has(#runtimeView.open) .layout{grid-template-columns:224px minmax(0,1fr)}
     body:has(#runtimeView.open) #inspector,
     body:has(#runtimeView.open) #routeNav,
@@ -26,7 +35,7 @@ export function createRuntimeView({ root, request, ready }) {
     const controls = text('div', '', 'runtime-controls'), reload = text('button', '새로고침', 'btn'), remove = text('button','보관 기록 삭제','btn');
     reload.type = remove.type = 'button'; reload.onclick = refresh;
     remove.onclick = async () => {
-      if (!confirm('보관 중인 실행 기록을 모두 삭제할까요? 이 작업은 되돌릴 수 없습니다.')) return;
+      if (!confirm('실행 기록과 보관한 원본 소스를 삭제할까요? 삭제 후 현재 로드된 모듈의 소스 연결은 재시작/재컴파일 전까지 미확인으로 표시됩니다.')) return;
       try { await ready(); const response = await request('/api/traces', { method:'DELETE' }); if (!response.ok) throw new Error(); await refresh(); }
       catch { root.append(text('p','삭제하지 못했습니다. 로그인 상태를 확인하세요.')); }
     };
@@ -51,15 +60,17 @@ export function createRuntimeView({ root, request, ready }) {
             const response = await request(`/api/traces/${selected}`); if (!response.ok) throw new Error();
             const data = await response.json(); if (current !== epoch || detail.dataset.selected !== selected) return;
             detail.replaceChildren(text('h3',trace.name),text('p',`trace ${data.traceId}`,'mono'));
-            const warning = text('p',`BEST-EFFORT · 누락 부모 ${data.coverage.missingParents.length} · runtime sequence gap ${data.coverage.runtimeSequenceGaps} · Agent 보고 손실 ${data.coverage.reportedDropped}. 소스 연결 미구현. 기록 없음은 미실행/실패의 증거가 아닙니다.`, 'insight');
+            const warning = text('p',`BEST-EFFORT · 누락 부모 ${data.coverage.missingParents.length} · runtime sequence gap ${data.coverage.runtimeSequenceGaps} · Agent 보고 손실 ${data.coverage.reportedDropped}. 소스는 버전별 manifest가 일치할 때만 연결합니다. 기록 없음은 미실행/실패의 증거가 아닙니다.`, 'insight');
             detail.append(warning);
+            if (data.sourceGraph) renderSourceGraph({ parent: detail, graph: data.sourceGraph, request });
             const table = text('table','','data-table'); table.setAttribute('aria-label','관측 span');
             const head = document.createElement('thead'), row = document.createElement('tr');
-            for (const label of ['이벤트 / 부모','시간','결과 / 저장','업무 / 출처']) row.append(text('th',label)); head.append(row); table.append(head);
+            for (const label of ['이벤트 / 부모','시간','결과 / 저장','업무 / 출처','소스 연결']) row.append(text('th',label)); head.append(row); table.append(head);
             const body = document.createElement('tbody');
             for (const event of data.events) {
               const row = document.createElement('tr'); row.dataset.spanId = event.spanId;
-              row.append(text('td',`${event.name}\n${event.kind}\n${event.spanId} ← ${event.parentSpanId || 'root'}`),text('td',`${event.durationMs.toFixed(1)} ms`),text('td',`${event.status} / ${event.outcome.transaction}`),text('td',`${event.outcome.business} / ${event.outcome.dataOrigin}`)); body.append(row);
+              row.append(text('td',`${event.name}\n${event.kind}\n${event.spanId} ← ${event.parentSpanId || 'root'}`),text('td',`${event.durationMs.toFixed(1)} ms`),text('td',`${event.status} / ${event.outcome.transaction}`),text('td',`${event.outcome.business} / ${event.outcome.dataOrigin}`)); const mapping = data.sourceGraph?.mappings.find(item=>item.spanId===event.spanId);
+              row.append(text('td',mapping?.status === 'linked' ? `${mapping.sourceRef.moduleId}:${mapping.line} · ${mapping.sourceRef.moduleVersion.slice(0,8)}` : mapping?.status || 'not-instrumented')); body.append(row);
             }
             table.append(body); detail.append(table);
           } catch { detail.replaceChildren(text('p','기록이 만료되었거나 수집기에 연결할 수 없습니다.')); }

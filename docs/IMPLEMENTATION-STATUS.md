@@ -1,43 +1,46 @@
-# 구현 상태 — 0.2.0
+# 구현 상태 — R11/R12 소스 연결 후속 개발
 
 ## 현재 구현
 
-0.1.1의 인증·worker 정적 분석·부분 분석 안내·전체 검색·DEMO/STATIC 분리를 유지한다. 0.2.0은 명시적 계측 기반 실제 실행 경로를 추가했다.
+0.1.1의 인증·worker 정적 분석·전체 검색과 0.2.0의 명시적 Browser/Node SDK·PostgreSQL 경로에 소스 매핑과 HMR 이력 그래프를 추가했다. PR #3은 PR #2 기반이며 main 병합·배포는 하지 않았다. 패키지 버전은 0.2.0으로 유지하고 이번 변경은 Unreleased로 기록한다.
 
 | 영역 | 지원 범위 |
 |---|---|
-| 수집기 | 메모리 보관, 스키마 검증, 순서 역전·중복 처리, 프로젝트/런타임/페이지/종류 제한, 상한·만료·손실 표시 |
-| 권한 | UI 세션은 조회/전체 삭제, Agent 토큰은 ingest 전용. 페이지 relay 토큰과 실제 ingest 토큰 분리 |
-| Browser SDK | 명시적 traceAction, 중첩 span, 허용 origin fetch. 전역 API 패치 없음 |
-| Node SDK | AsyncLocalStorage, HTTP traceparent v00, 명시적 함수 span |
-| PostgreSQL | 단일 client의 BEGIN/쿼리/COMMIT/ROLLBACK. COMMIT 응답 유실은 unknown |
-| 개발 예제 | 실제 React/Vite UI, Node 업무 API, loopback 전용 DB. 4가지 저장/실패 시나리오 |
-| 실행 UI | OBSERVED 목록/상세, 부모 span·시간·저장/업무/출처 차원·손실 표시, 새로고침·삭제 |
-| 운영 빌드 | 예제의 production alias는 no-op. 수집 경로/trace 헤더/런타임 식별 표식과 source map 미포함 검사 |
+| 수집기/권한 | 메모리 보관, 스키마·순서 역전·중복·상한·만료·손실 표시, UI 조회/삭제와 Agent ingest 권한 분리 |
+| Browser/Node | 명시적 action/span/fetch, 허용 origin 전파, Node AsyncLocalStorage, 동시 context 분리 |
+| PostgreSQL | 같은 client의 BEGIN/쿼리/COMMIT/ROLLBACK, 응답 유실 unknown, 후속 오류와 커밋 분리 |
+| 소스 매핑 | 선택된 inline callback의 파일 해시·AST 위치, scanner와 동일 sourceRef, project/build/definition 검증 |
+| 소스 보관 | 선택된 원본 코드만 bounded memory 보관, UI 인증 조회, 만료·삭제 시 현재 파일로 대체하지 않음 |
+| HMR | Vite 변경 시 새 build와 전체 reload. 보관된 과거 소스 유지. Node 모듈은 시작 시 고정 |
+| 실행 UI | OBSERVED 목록/상세/삭제, trace별 버전 고정 함수 그래프, 실행 노드 강조, 원본 코드/줄 보기 |
+| 운영 빌드 | 예제 production no-op alias, 수집·trace·source manifest 표식 및 source map 제외 검사 |
 
 ## 검증된 범위
 
-코드 head `10e0a0c3a0e65350eef145f0e8a148d2b770e10e`, CI run `40834192100`:
+코드 `256d6db884902bff0861db45c4d2e12aa080b5dc`, CI `40845242282`:
 
-- Node/실제 HTTP 66/66, PostgreSQL 통합 9/9(부모 테스트 포함 Node 집계).
-- 기존 실제 브라우저 회귀 14/14, React → PostgreSQL 브라우저 검사 12/12.
-- JavaScript 36개 구문·인코딩 검사, npm ci, leerness verify, production 3개 파일/6개 금지 표식 검사 통과.
-- CI 소스 자동 수정 없음. 보관 artifact SHA-256: `d9484a2f84b371e463ed6ac9af7efa5c19604293c082020059bee8cfc8d417a2`.
+- Node/실제 HTTP 82/82, PostgreSQL 9/9(부모 포함), 기존 browser 14/14, React/DB/HMR browser 17/17.
+- JavaScript 42개 구문·인코딩 검사, npm ci, leerness verify, production 3개 파일/9개 개발 표식 부재.
+- 실제 Vite 소스 수정 후 과거 trace의 원본 코드와 새 trace의 변경 코드가 분리되고 DB 저장도 유지됨을 확인.
+- 소스 API의 UI/Agent 권한 분리, record 삭제, TTL/capacity 및 source graph의 추정 연결 방지 검사.
+- CI가 추적 소스를 변경하지 않는 검사 통과. [근거 JSON](validation-source-mapping.json).
 
-이후 변경은 해당 head의 CI 결과로 다시 검증한다. 로컬에서는 Node/HTTP·빌드·구문·harness 검사가 통과했지만 브라우저 navigation은 관리자 정책으로 차단되었다. 실제 PostgreSQL/브라우저 통과 근거는 위 CI다. Windows/macOS와 사용자의 임의 프로젝트는 미검증이다.
+문서 등 후속 커밋은 해당 head CI로 다시 확인한다. 로컬 Chromium navigation은 관리자 정책으로 차단됐다. 이를 모의 통신으로 대체하지 않았으며 실제 PostgreSQL/브라우저 근거는 CI다. Windows/macOS 및 사용자 임의 프로젝트는 미검증이다.
 
-## 진행률과 남은 것
+## 단계 진행률
 
-[고정된 인수 기준](RUNTIME-DEVELOPMENT.ko.md) R01–R10 통과, R11–R12 미구현: **10/12 = 83.3%**. 이는 실제 저장 경로 단계의 기준 충족률이며 전체 제품·공수 진행률이 아니다.
+[고정된 12개 인수 기준](RUNTIME-DEVELOPMENT.ko.md) **12/12 = 100%**. 실제 저장 경로 단계의 기준 충족률이며 전체 제품 완성률 또는 공수 비율이 아니다. 원래 제품의 자동 설치·다중 프레임워크·클라우드 지원은 별도 개발이다.
 
-다음 두 항목은 미구현이다: runtime build manifest ↔ 정적 sourceRef의 정확한 연결, HMR 전후 과거 소스 보존 및 그래프 노드 실행 강조. 현재 이름/시간으로 소스를 추정 연결하지 않으며 `sourceMapping: not-linked`를 반환한다.
+## 아직 미구현 또는 제한되는 범위
 
-임의 프로젝트 자동 설치·모든 함수 자동 계측·DOM 데이터 lineage·OTel 수신·Supabase/Redis/Firestore/호스팅 커넥터·지속 저장·VS Code/MCP·운영 서비스 배포도 미구현이다. 수동 새로고침은 라이브 스트리밍 UI가 아니다.
+임의 프로젝트 자동 설치, 모든 함수 자동 계측, DOM 데이터 lineage, OpenTelemetry 수신, Supabase/Redis/Firestore/호스팅 커넥터, 지속 저장, VS Code/MCP, 운영 배포는 미구현이다. 실행 UI는 수동 새로고침이다. 소스 그래프는 해당 trace에서 확인된 정의만 표시하며 전체 STATIC 그래프의 라이브 재생은 아니다.
 
-## 운영상 제한
+소스 매핑은 명시적 inline callback과 선택된 파일에 한정한다. HMR은 전체 reload라서 React 입력 상태가 초기화된다. Node hot reload는 없다. 개발용 Node loader는 상대/`node:` 정적 import만 지원한다. 상세: [소스 연결 계약](SOURCE-MAPPING.ko.md).
 
-신뢰한 로컬 개발 환경만 대상이다. OBSERVED는 Agent 보고이지 위변조 방지 증명이 아니다. 기본 보관 5,000개 이벤트/30분, Agent 64개, Vite 페이지 세션 32개다. Agent 만료 후 자동 갱신은 없으며 예제를 재시작한다. 입력/본문/SQL/결과 행/원시 오류는 수집하지 않지만 span label은 개발자가 안전한 정적 이름으로 지정해야 한다.
+## 보관과 개인정보 경계
 
-종료 이벤트만 수집하므로 프로세스 강제 종료 직전 손실을 완전 탐지하지 못한다. 큐 초과/전송 실패를 보고하되 완전성은 best-effort로 유지한다. 예제 HMR은 세션 폐기·새 build ID·전체 새로고침이며 핫 상태 보존/과거 소스 매핑을 의미하지 않는다.
+이벤트 기본 보관은 5,000개/30분, Agent 64개, 페이지 relay 32개다. 만료 자동 갱신은 없고 재시작이 필요하다. 종료 이벤트만 수집하므로 강제 종료 직전 손실을 완전 탐지할 수 없으며 완전성은 best-effort다. OBSERVED는 신뢰한 개발용 Agent의 보고다.
 
-0.1.1의 [보안·정적 분석 계약](HARDENING-AND-CONTRACTS.ko.md)과 기존 검증 기록은 해당 버전의 역사 기록으로 유지한다. 현재 런타임 계약과 실행법은 [개발 기록](RUNTIME-DEVELOPMENT.ko.md), [실행 안내](RUNTIME-QUICKSTART.ko.md)를 따른다.
+소스 기본 보관은 128개 버전/30분, 메타데이터를 포함한 8 MiB 예산이다. 선택한 파일 원본의 상수·SQL 문자열·주석은 보관될 수 있다. 이벤트 본문에서 입력/SQL/결과 행을 제외하는 정책과 혼동하지 않는다. 소스는 UI 인증으로만 조회하고 삭제·종료 시 함께 폐기한다. 만료/누락 시 `not-retained`이며 최신 파일로 추측 연결하지 않는다.
+
+이전 버전의 검증 기록과 변경 이력은 역사 자료로 유지한다. 현재 계약은 [개발 기록](RUNTIME-DEVELOPMENT.ko.md), [실행 안내](RUNTIME-QUICKSTART.ko.md)를 따른다.

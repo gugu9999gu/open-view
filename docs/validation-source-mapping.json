@@ -1,0 +1,53 @@
+{
+  "scope": "R11/R12 explicit-source-mapping and historical HMR graph",
+  "codeCommit": "256d6db884902bff0861db45c4d2e12aa080b5dc",
+  "sourceTree": "62323ba5ee234608b4d9873ea6e067171d0fcb56",
+  "ciRunId": 40845242282,
+  "artifactId": 12884761712,
+  "artifactSha256": "f2a4a0a9ae72a82425bf3fcc531ed8df9c3ef67a0cc9bba84a689852ef0d170c",
+  "ciStatus": "success",
+  "nodeTests": 82,
+  "postgresqlTestsIncludingParent": 9,
+  "browserRegression": 14,
+  "runtimeBrowserChecks": 17,
+  "syntaxModules": 42,
+  "productionFiles": 3,
+  "forbiddenDevelopmentMarkersAbsent": 9,
+  "productionSourceMaps": 0,
+  "runtimeChecks": [
+    "real React application and UI login",
+    "real click + independent DB + trace: success",
+    "real click + independent DB + trace: rollback",
+    "real click + independent DB + trace: after-commit",
+    "real click + independent DB + trace: fixture",
+    "concurrent real clicks are separate traces",
+    "two browser tabs have separate page/runtime identities",
+    "polling is not attached to a previous click",
+    "browser and Node manifest refs exactly match independently scanned AST definitions",
+    "OBSERVED graph highlights verified nodes and opens original code without DEMO/current-source substitution",
+    "OBSERVED UI displays actual spans and hides unrelated DEMO/STATIC panels",
+    "no auth cookies; browser relay token cannot read UI data",
+    "real Vite HMR: new build and source IDs, old trace and callback bytes remain immutable",
+    "historical graph selection displays old source after real HMR, never the current file",
+    "source history is inaccessible with browser relay credentials",
+    "collector stopped: browser and actual DB save still succeed",
+    "no uncaught browser exceptions"
+  ],
+  "localBrowser": "blocked: ERR_BLOCKED_BY_ADMINISTRATOR; no navigation-policy bypass or network mock",
+  "sourceArchiveFiles": 110,
+  "sourceArchiveComparison": "All implementation and test bytes match. Only locally registered leerness work item differs; documentation follow-up is a separate commit.",
+  "phaseProgress": {
+    "passed": 12,
+    "total": 12,
+    "percent": 100,
+    "isWholeProductProgress": false
+  },
+  "mergeAndDeployment": "not performed",
+  "limitations": [
+    "selected files and explicit inline callbacks only",
+    "HMR uses full reload, not React state preservation",
+    "Node example module loaded at startup, no Node hot reload",
+    "memory-only source retention; no realtime streaming",
+    "source text may contain literals, separate from metadata-only span payloads"
+  ]
+}

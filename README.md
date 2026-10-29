@@ -2,7 +2,9 @@
 
 웹 프로젝트의 **페이지 → 함수 → API → DB** 관계를 눈으로 확인하는 로컬 개발 도구의 설계·프로토타입입니다.
 
-**현재 상태(0.2.0): 정적 분석 + 명시적 Browser/Node 계측 SDK + React/Vite → 로컬 PostgreSQL의 실제 실행 조회. 임의 프로젝트 자동 계측·정확한 소스 매핑은 아직 미구현입니다.**
+**현재 상태: 정적 분석 + 명시적 Browser/Node 계측 + 실제 PostgreSQL 저장 추적 + 선택된 함수의 정확한 소스 연결·HMR 이력 그래프. 임의 프로젝트의 모든 함수 자동 계측은 아직 지원하지 않습니다.**
+
+R01–R12 실제 저장 경로 단계의 인수 기준은 12/12 통과했습니다. 전체 제품 완성률은 아닙니다. 소스 연결 변경은 PR #3의 Unreleased 변경이며 main 병합·배포는 하지 않았습니다.
 
 ## 실행
 
@@ -37,12 +39,18 @@ npm run example:runtime
 
 터미널의 `loginUrl`과 `appUrl`을 열고 저장 버튼을 누른 뒤, Open View의 **실제 실행 → 새로고침**에서 확인합니다. 정상 커밋·롤백·커밋 후 오류·fixture 반환을 별도로 관측합니다. 이 명령은 예제 DB에 실제 레코드를 저장합니다. 일반 `npm start` 정적 분석은 여전히 대상 DB/파일을 변경하지 않습니다.
 
+실행 상세의 소스 그래프에서 강조된 노드를 선택하면 실행 당시 원본 함수·파일·줄 번호를 확인합니다. Vite 코드를 바꾸면 새 build로 전체 reload되며 과거 trace는 보관된 옛 코드를 유지합니다. React 상태 보존형 HMR과 Node hot reload는 지원하지 않습니다.
+
+선택적으로 보관하는 원본에는 코드에 적힌 상수·SQL 문자열도 포함될 수 있습니다. 이벤트 메타데이터와 별도이며 UI 인증으로만 조회합니다.
+
 [DB 준비부터 실행까지](docs/RUNTIME-QUICKSTART.ko.md) · [12개 인수 기준과 진행률](docs/RUNTIME-DEVELOPMENT.ko.md)
 
 ## 문서
 
 - [상세 제품 설계](docs/PRODUCT-DESIGN.ko.md)
 - [구현 상태와 한계](docs/IMPLEMENTATION-STATUS.md)
+- [정확한 소스 연결·HMR 이력 계약](docs/SOURCE-MAPPING.ko.md)
+- [소스 연결 검증 기록](docs/validation-source-mapping.json)
 - [검수 보강과 구현 계약](docs/HARDENING-AND-CONTRACTS.ko.md)
 - [0.1.1 로컬 검증 기록](docs/validation-0.1.1.json)
 - [초기 0.1 UI/HTTP 검사 기록 — 현재 E2E 결과 아님](docs/ui-test-results.json)

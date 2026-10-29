@@ -1,17 +1,30 @@
 import crypto from 'node:crypto';
+import path from 'node:path';
+import { relativeModule } from '../lib/source-ref.mjs';
 import { readJsonBody } from './collector.mjs';
 import { randomId } from './protocol.mjs';
 import { httpTransport } from './emitter.mjs';
 /** Dev-only, same-origin metadata relay. Agent ingest credentials never enter browser code. */
-export function openViewRelay({ projectId, buildId, collectorUrl, issueAgent, revokeAgent = () => {} }) {
+export function openViewRelay({ projectId, buildId, collectorUrl, issueAgent, revokeAgent = () => {}, sources = null, sourceFiles = [] }) {
   const sessions = new Map(); let currentBuild = buildId;
   const clear = () => { for (const session of sessions.values()) revokeAgent(session.agent.token); sessions.clear(); };
   return {
-    name: 'open-view-dev-relay', apply: 'serve',
+    name: 'open-view-dev-relay', apply: 'serve', enforce: 'pre',
+    transform(code, id) {
+      if (!sources || id.includes('?') && !/^.*\?(?:t=\d+)?$/.test(id)) return null;
+      const file = id.split('?')[0];
+      if (!sourceFiles.some(moduleId => path.resolve(sources.root, moduleId) === file)) return null;
+      try {
+        const moduleId = relativeModule(sources.root, file);
+        return { code: sources.capture({ moduleId, source: code, buildId: currentBuild }).code, map: null };
+      } catch { return null; } // Unmapped is safer than failing application compilation.
+    },
     handleHotUpdate(context) {
-      currentBuild = `dev:${randomId()}`; clear();
-      // Full reload prevents a runtime from silently claiming the previous build. Historic mapping is not implemented.
+      currentBuild = `dev:${randomId()}`;
+      // Invalidate transform caches before reload; old grants and immutable source versions survive until TTL.
+      context.server.moduleGraph.invalidateAll();
       context.server.ws.send({ type: 'full-reload' });
+      return []; // No second partial update with a stale transform.
     },
     configureServer(server) {
       server.httpServer?.once('close', clear);

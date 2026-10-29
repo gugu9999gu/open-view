@@ -18,19 +18,21 @@ doNotStore:
 Updated: 2026-10-29
 
 ## Now
-- 실제 저장 trace 한 경로 <!-- leerness:auto -->
-- 0.2.0 명시적 runtime SDK와 실제 React/Vite→Node→PostgreSQL 경로 구현. PR #2는 PR #1 기반, main 미병합.
-- 인수 기준 R01–R10 검증 완료, R11–R12 미구현. 단계 진행률 10/12=83.3%.
-- 증거: code 10e0a0c3, CI 40834192100. Node 66, PG 9, 기존 browser 14, runtime browser 12 통과.
+- 프로젝트 계획 정리 <!-- leerness:auto -->
+- R11/R12 소스 연결·과거 HMR 소스·trace별 그래프 검증 완료.
+- 고정 R01–R12 기준 12/12=100%. 전체 제품·공수 진행률이 아니다.
+- code 256d6db8 / CI 40845242282: Node82, PG9, browser14+17, syntax42, production9 표식 부재.
+- PR #3은 PR #2 기반이고 main 미병합. 이번 변경은 Unreleased이며 package 0.2.0 유지.
 
 ## Next
-- R11 소스 매핑, R12 HMR/그래프 <!-- leerness:auto -->
-- 최종 head CI와 PR 검토. 후속 개발은 정확한 runtime source manifest 연결과 과거 HMR 소스 보존/그래프 강조.
-- 위 두 항목 전에는 함수명/시간만으로 OBSERVED를 STATIC sourceRef에 붙이지 않는다.
+- project-brief.md를 실제 목적으로 업데이트 <!-- leerness:auto -->
+- 문서 후속 head CI와 PR #3 검토. 다음 개발은 사용자 프로젝트의 선택적 연결/설정·지원 범위 진단부터 진행한다.
+- 자동 계측·실시간 스트리밍·클라우드 커넥터는 별도 인수 기준으로 정의한다.
 
 ## Blockers
 - T-0003 로컬 실제 브라우저 E2E <!-- leerness:auto -->
-- 로컬 브라우저 정책/DNS 제한은 유지. GitHub Actions에서는 검증 통과.
+- 로컬 Chromium navigation 관리자 정책 및 GitHub/npm DNS 제한은 유지. 우회하지 않았으며 실제 browser/PG 근거는 CI다.
+- Windows/macOS·사용자 임의 프로젝트·Node hot reload·React 상태 보존형 HMR은 미검증/미지원이다.
 
 ## 역사 기록 — 0.1.1 검수 보강
 인증·부분 분석·worker 격리·전체 검색을 구현하고 Node/HTTP 44개를 검증했다. 런타임 SDK/DB 추적은 미구현이다. 로컬 브라우저 E2E는 정책으로 차단됐으며 CI가 현재 커밋의 실제 검증 근거가 된다. 세부 기록: docs/validation-0.1.1.json.

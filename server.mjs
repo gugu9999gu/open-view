@@ -15,6 +15,7 @@ const publicAssets = new Map([
   ['/graph-model.mjs', 'text/javascript; charset=utf-8'],
   ['/session-client.mjs', 'text/javascript; charset=utf-8'],
   ['/runtime-view.mjs', 'text/javascript; charset=utf-8'],
+  ['/source-view.mjs', 'text/javascript; charset=utf-8'],
 ]);
 export function authorizedHost(host, port) {
   return host === `127.0.0.1:${port}` || host === `localhost:${port}`;
@@ -63,6 +64,11 @@ export function createServer({ project, port = DEFAULT_PORT,
           collector.clear(); return send(204, '');
         }
         if (req.method !== 'GET') return send(405, { error: 'Read-only analysis API' });
+        if (collector?.sources && /^\/api\/sources\/[a-f0-9]{64}\/function:[a-f0-9]{20}$/.test(url.pathname)) {
+          const [, , , manifestId, definitionId] = url.pathname.split('/');
+          const source = collector.sources.read(manifestId, definitionId);
+          return source ? send(200, source) : send(404, { error: 'Source version not retained' });
+        }
         if (collector && url.pathname === '/api/traces') return send(200, collector.list());
         if (collector && /^\/api\/traces\/[a-f0-9]{32}$/.test(url.pathname)) {
           const result = collector.trace(url.pathname.split('/').pop());
