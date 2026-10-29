@@ -1,27 +1,30 @@
-name: Prepare runtime dependency lock
+name: One-time runtime source import
 on:
-  pull_request:
-    paths: ['.github/workflows/prepare-runtime-dependencies.yml']
+  push:
+    branches: [feat/runtime-tracing-20261029]
+    paths: [scripts/finalize-runtime-import.py]
 permissions:
-  contents: read
+  contents: write
+  actions: read
 jobs:
-  prepare:
+  import:
+    if: github.repository == 'gugu9999gu/open-view' && github.ref == 'refs/heads/feat/runtime-tracing-20261029'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
         with:
-          persist-credentials: false
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - run: npm install --save-dev --save-exact --ignore-scripts --no-audit --no-fund vite@7 react@19 react-dom@19 pg@8
-      - run: |
-          mkdir -p /tmp/runtime-deps
-          cp package.json package-lock.json /tmp/runtime-deps/
-          tar czf /tmp/runtime-deps/node_modules.tgz node_modules
-      - uses: actions/upload-artifact@v4
-        with:
-          name: runtime-dependency-lock
-          path: /tmp/runtime-deps/
-          retention-days: 7
+          ref: ${{ github.sha }}
+      - name: Retrieve the previously reviewed dependency artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download 40831620396 --repo "$GITHUB_REPOSITORY" --name runtime-dependency-lock --dir /tmp/runtime-deps
+      - name: Import only hash-verified files and remove this importer
+        run: python scripts/finalize-runtime-import.py
+      - name: Commit to the feature branch only, without force
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'build: finalize hash-verified runtime source and locked dependencies'
+          git push origin HEAD:refs/heads/feat/runtime-tracing-20261029
