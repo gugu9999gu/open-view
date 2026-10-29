@@ -23,5 +23,7 @@
     "UI loaded with set_content. Browser-network E2E not tested because container browser navigation is policy-restricted.",
     "API HTTP transport tested separately with urllib.",
     "Only Linux execution tested; runtime instrumentation is not implemented."
-  ]
+  ],
+  "scope": "historical-v0.1-separated-ui-http",
+  "supersededBy": "artifacts/e2e/results.json from the current commit CI run"
 }
