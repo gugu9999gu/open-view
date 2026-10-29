@@ -1,0 +1,16 @@
+.env
+.env.local
+.env.production
+.env.*.local
+*.pem
+credentials.json
+.leerness/skill-publish.local.json
+.leerness/**/*.local.json
+.leerness/archive/
+.leerness/migration-report.md
+.leerness/cache/
+.leerness-backup/
+.leerness/credentials.local.json
+.leerness/incidents/
+.leerness/cache/agent-sessions/
+.leerness/cache/agent-runs/
