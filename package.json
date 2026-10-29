@@ -1,16 +1,24 @@
 {
   "name": "open-view",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Local-first visual project explorer — design prototype and bounded static scanner.",
   "type": "module",
-  "engines": {"node": ">=22"},
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "start": "node server.mjs",
     "test": "node --test test/*.test.mjs",
     "harness:status": "leerness status .",
-    "harness:verify": "leerness verify ."
+    "harness:verify": "leerness verify .",
+    "check": "node scripts/check-source.mjs",
+    "test:e2e": "python scripts/check-ui.py"
   },
-  "dependencies": {"typescript": "5.8.3"},
-  "devDependencies": {"leerness": "1.36.305"}
+  "dependencies": {
+    "typescript": "5.8.3"
+  },
+  "devDependencies": {
+    "leerness": "1.36.305"
+  }
 }

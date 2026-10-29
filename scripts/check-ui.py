@@ -1,79 +1,179 @@
-"""Local validation. Requires Python playwright and a Chromium executable.
-Browser rendering uses set_content so network-restricted environments can run it.
-HTTP API checks use urllib; the browser receives the real scanner response through
-an explicitly injected test transport. This is NOT a full browser-network E2E test.
+"""Real browser -> HTTP server E2E. Never replaces fetch or uses set_content.
+Install scripts/requirements-test.txt and Playwright Chromium first.
+A blocked browser/navigation is a failed run, never a silent pass or mock fallback.
 """
-import asyncio, json, os, subprocess, urllib.request, urllib.error
+import asyncio
+import json
+import os
+import re
+import shutil
+import sys
+import tempfile
+from datetime import datetime, timezone
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from playwright.async_api import async_playwright
-ROOT=Path(__file__).resolve().parents[1]
-OUT=Path(os.environ.get('OPEN_VIEW_SCREENSHOTS',str(ROOT.parent)))
+from threading import Thread
+
+from playwright.async_api import async_playwright, expect
+
+ROOT = Path(__file__).resolve().parents[1]
+OUT = Path(os.environ.get('OPEN_VIEW_TEST_OUTPUT', str(ROOT / 'artifacts' / 'e2e')))
+
+
 async def main():
-    server=subprocess.Popen(['node','server.mjs'],cwd=ROOT,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
-    lines=[server.stdout.readline() for _ in range(3)]
-    url=lines[-1].strip(); base=url.split('/#')[0]; token=url.split('token=')[-1]
-    checks=[]
-    def request(path,headers=None,method='GET'):
-      req=urllib.request.Request(base+path,headers=headers or {},method=method)
-      try:
-        with urllib.request.urlopen(req) as r:return r.status,r.read(),r.headers
-      except urllib.error.HTTPError as e:return e.code,e.read(),e.headers
-    try:
-      assert request('/api/graph')[0]==401;checks.append('HTTP: unauthenticated graph request rejected')
-      status,_,headers=request('/api/session',{'Authorization':'Bearer '+token},'POST');assert status==200
-      cookie=headers['Set-Cookie'].split(';')[0]
-      status,body,_=request('/api/graph',{'Cookie':cookie});assert status==200
-      actual_graph=json.loads(body);checks.append('HTTP: authenticated AST graph returned')
-      assert request('/api/graph',{'Cookie':cookie,'Origin':'https://attacker.invalid'})[0]==403
-      checks.append('HTTP: untrusted Origin rejected')
-      assert request('/api/graph',{'Cookie':cookie,'Host':'attacker.invalid:4317'})[0]==403
-      checks.append('HTTP: untrusted Host rejected')
-      assert request('/.env')[0]==404;checks.append('HTTP: arbitrary file not exposed')
-      async with async_playwright() as p:
-        browser=await p.chromium.launch(executable_path=os.environ.get('CHROMIUM_PATH','/usr/bin/chromium'),args=['--no-sandbox'])
-        page=await browser.new_page(viewport={'width':1920,'height':1200},device_scale_factor=1)
-        page.set_default_timeout(6000)
-        errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
-        await page.set_content((ROOT/'public/index.html').read_text(),wait_until='domcontentloaded')
-        await page.wait_for_timeout(300)
-        await page.screenshot(path=str(OUT/'open-view-01-project-map.png'))
-        await page.frame_locator('#demoFrame').get_by_role('button',name='고객 저장').click()
-        await page.wait_for_timeout(1800)
-        assert await page.locator('.trace-row').count()==6
-        checks.append('UI: embedded page click produces six SIMULATED trace steps')
-        await page.screenshot(path=str(OUT/'open-view-02-trace.png'))
-        await page.select_option('#scenario','mock');await page.click('#runBtn');await page.wait_for_timeout(1300)
-        assert await page.locator('.trace-row').count()==4
-        assert 'sampleCustomers' in await page.locator('#inspectBody').inner_text()
-        checks.append('UI: mock fallback explicitly labeled fixture')
-        await page.screenshot(path=str(OUT/'open-view-03-mock-fallback.png'))
-        await page.click('[data-view="provenance"]');await page.screenshot(path=str(OUT/'open-view-04-provenance.png'))
-        await page.click('[data-view="graph"]');await page.select_option('#scenario','error');await page.click('#runBtn');await page.wait_for_timeout(1300)
-        assert 'ERROR' in await page.locator('#traceRows').inner_text();checks.append('UI: error scenario reports ERROR')
-        await page.evaluate('g => { window.fetch = async path => { if(path === "/api/graph") return new Response(JSON.stringify(g), {status:200}); throw new Error("Unexpected test request"); }; }',actual_graph)
-        await page.click('#scanBtn');await page.wait_for_timeout(300)
-        assert 'STATIC' in await page.locator('#demoNotice').inner_text()
-        assert 'handleSave' in await page.locator('#nodes').inner_text()
-        checks.append('UI: actual AST response rendered through injected test transport')
-        await page.screenshot(path=str(OUT/'open-view-05-static-scan.png'))
-        await page.click('[data-view="provenance"]')
-        assert 'Supabase customers' not in await page.locator('#provenanceView').inner_text()
-        checks.append('UI: static findings do not mix DEMO resources')
-        await page.click('[data-view="graph"]');await page.click('#demoMode');await page.locator('#routeNav [data-route="/orders"]').click()
-        assert '/orders' in await page.locator('[data-id="page"]').inner_text();checks.append('UI: route switching')
-        await page.fill('#search','Redis');assert await page.locator('.node.dim').count()>0
-        await page.keyboard.press('Escape');assert await page.locator('.node.dim').count()==0
-        checks.append('UI: search and reset')
-        old=await page.locator('#zoomLabel').inner_text();await page.click('#zoomIn');assert old!=await page.locator('#zoomLabel').inner_text()
-        checks.append('UI: canvas zoom')
-        async with page.expect_download(timeout=5000) as info:await page.click('#exportBtn')
-        download=await info.value;assert download.suggested_filename=='open-view-demo.json'
-        checks.append('UI: labeled graph JSON export')
-        assert not errors,errors;checks.append('UI: no uncaught browser exceptions')
-        await browser.close()
-    finally:
-      server.terminate();server.wait(timeout=5)
-    report={'checks':checks,'passed':len(checks),'browser':'Chromium','viewport':'1920x1200','limitations':['UI loaded with set_content. Browser-network E2E not tested because container browser navigation is policy-restricted.','API HTTP transport tested separately with urllib.','Only Linux execution tested; runtime instrumentation is not implemented.']}
-    (ROOT/'docs/ui-test-results.json').write_text(json.dumps(report,ensure_ascii=False,indent=2))
-    print(json.dumps(report,ensure_ascii=False,indent=2))
-asyncio.run(main())
+    OUT.mkdir(parents=True, exist_ok=True)
+    checks, browser_errors, csp_errors = [], [], []
+    server = browser = target = None
+    report = {'scope': 'real-browser-network-e2e', 'generatedAt': datetime.now(timezone.utc).isoformat(),
+              'commit': os.environ.get('GITHUB_SHA'), 'checks': checks, 'passed': 0, 'status': 'failed'}
+    with tempfile.TemporaryDirectory(prefix='open-view-e2e-') as temp:
+        project = Path(temp) / 'project'
+        shutil.copytree(ROOT / 'examples' / 'demo-project', project)
+        (project / 'zz-many.ts').write_text('\n'.join(
+            f'export function sentinelFunction{i}() {{ return {i}; }}' for i in range(160)))
+        deep = project.joinpath(*(['nested'] * 21))
+        deep.mkdir(parents=True)
+        (deep / 'hidden.ts').write_text('export function hiddenByDepth() {}')
+        try:
+            server = await asyncio.create_subprocess_exec(
+                'node', 'server.mjs', '--project', str(project), '--port', '0', cwd=ROOT,
+                stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+            lines = [await asyncio.wait_for(server.stdout.readline(), timeout=15) for _ in range(3)]
+            login_url = lines[-1].decode().strip()
+            if '/#token=' not in login_url:
+                raise RuntimeError('Server did not produce a login URL')
+            base, bootstrap = login_url.split('/#token=', 1)
+            async with async_playwright() as playwright:
+                browser = await playwright.chromium.launch(
+                    executable_path=os.environ.get('CHROMIUM_PATH'), headless=True)
+                context = await browser.new_context(viewport={'width': 1920, 'height': 1200})
+                page = await context.new_page()
+                page.set_default_timeout(10000)
+                page.on('pageerror', lambda error: browser_errors.append(str(error)))
+                page.on('console', lambda message: csp_errors.append(message.text)
+                        if message.type == 'error' and ('Content Security Policy' in message.text or 'violates the following' in message.text) else None)
+                async with page.expect_response(lambda r: r.url == base + '/api/session' and r.request.method == 'POST') as login:
+                    await page.goto(login_url, wait_until='networkidle')
+                login_response = await login.value
+                assert login_response.status == 200
+                session = await login_response.json()
+                assert session['accessToken'] != bootstrap
+                assert await page.evaluate('location.hash') == ''
+                assert not any(cookie['name'] == 'ov_session' for cookie in await context.cookies())
+                checks.append('real navigation exchanges a one-time token without an auth cookie')
+                replay = await context.request.post(base + '/api/session', headers={'Authorization': 'Bearer ' + bootstrap})
+                assert replay.status == 401
+                checks.append('bootstrap replay denied over HTTP')
+
+                await page.frame_locator('#demoFrame').get_by_role('button', name='고객 저장').click()
+                await expect(page.locator('.trace-row')).to_have_count(6)
+                await expect(page.locator('#runBtn')).to_be_enabled()
+                assert 'SIMULATION' in await page.locator('#traceBadge').inner_text()
+                await page.screenshot(path=str(OUT / 'demo.png'))
+                checks.append('nonce-protected iframe button produces explicitly simulated trace')
+                for scenario, expected in [('mock', 'FIXTURE'), ('error', 'ERROR')]:
+                    await page.select_option('#scenario', scenario)
+                    await page.click('#runBtn')
+                    await expect(page.locator('.trace-row')).to_have_count(4)
+                    await expect(page.locator('#runBtn')).to_be_enabled()
+                    assert expected in await page.locator('#traceRows').inner_text()
+                    checks.append(f'demo {scenario} outcome remains explicit')
+
+                async with page.expect_response(base + '/api/graph') as result:
+                    await page.click('#scanBtn')
+                response = await result.value
+                assert response.status == 200
+                graph = await response.json()
+                await expect(page.locator('#demoNotice')).to_contain_text('STATIC')
+                assert len(graph['nodes']) > 100
+                assert await page.locator('.node').count() == 100
+                await expect(page.locator('#coverageSummary')).to_contain_text('부분 분석')
+                assert 'depth-limit' in await page.locator('#coverageSummary').inner_text()
+                checks.append('real worker AST response renders a bounded canvas with partial-coverage notice')
+                assert await page.locator('.node-title').filter(has_text='sentinelFunction159').count() == 0
+                await page.fill('#search', 'sentinelFunction159')
+                await page.locator('[data-search-node]').filter(has_text='sentinelFunction159').click()
+                await expect(page.locator('.node.selected .node-title')).to_have_text('sentinelFunction159')
+                assert await page.locator('.node').count() <= 100
+                assert 'zz-many.ts' in await page.locator('#nodes').inner_text()
+                checks.append('search reaches node beyond first 100 and focuses its source neighborhood')
+                await page.fill('#search', 'sentinelFunction')
+                for _ in range(5):
+                    await page.click('#searchNext')
+                assert '전체 160개 결과' in await page.locator('#searchResults').inner_text()
+                assert 'sentinelFunction159' in await page.locator('#searchResults').inner_text()
+                checks.append('search pagination reaches all matching source definitions')
+                await page.keyboard.press('Escape')
+                await page.screenshot(path=str(OUT / 'static-search.png'))
+                await page.click('[data-view="provenance"]')
+                assert 'Supabase customers' not in await page.locator('#provenanceView').inner_text()
+                checks.append('static provenance is not mixed with demo resources')
+                await page.click('[data-view="graph"]')
+                async with page.expect_download() as exported:
+                    await page.click('#exportBtn')
+                download = await exported.value
+                payload = json.loads(Path(await download.path()).read_text())
+                assert payload['mode'] == 'static' and payload['root'] == '<project-root>'
+                assert len(payload['nodes']) == len(graph['nodes'])
+                assert session['accessToken'] not in json.dumps(payload)
+                checks.append('export contains whole graph and no auth token or absolute project root')
+                await page.reload(wait_until='networkidle')
+                async with page.expect_response(base + '/api/graph') as reloaded:
+                    await page.click('#scanBtn')
+                assert (await reloaded.value).status == 200
+                checks.append('reload uses sessionStorage without reusing bootstrap link')
+
+                seen = []
+                class TargetHandler(BaseHTTPRequestHandler):
+                    def do_GET(self):
+                        seen.append({'authorization': bool(self.headers.get('Authorization')),
+                                     'authCookie': 'ov_session=' in self.headers.get('Cookie', '')})
+                        self.send_response(200)
+                        self.send_header('Content-Type', 'text/html; charset=utf-8')
+                        self.end_headers()
+                        self.wfile.write(b'<!doctype html><title>Target application</title>')
+                    def log_message(self, *_args):
+                        pass
+                target = ThreadingHTTPServer(('127.0.0.1', 0), TargetHandler)
+                Thread(target=target.serve_forever, daemon=True).start()
+                target_page = await context.new_page()
+                await target_page.goto(f'http://127.0.0.1:{target.server_port}/', wait_until='networkidle')
+                assert await target_page.evaluate('sessionStorage.getItem("open-view.ui-session.v1")') is None
+                assert seen and not any(item['authorization'] or item['authCookie'] for item in seen)
+                checks.append('different-port application receives neither UI authorization nor UI session storage')
+                await target_page.close()
+                async with page.expect_response(lambda r: r.url == base + '/api/session' and r.request.method == 'DELETE') as logout:
+                    await page.click('#logoutBtn')
+                assert (await logout.value).status == 204
+                denied = await context.request.get(base + '/api/config', headers={'Authorization': 'Bearer ' + session['accessToken']})
+                assert denied.status == 401
+                checks.append('logout revokes server session')
+                assert not browser_errors, browser_errors
+                assert not csp_errors, csp_errors
+                checks.append('no uncaught JavaScript exceptions or CSP violations')
+                report['status'] = 'passed'
+        except Exception as error:
+            # Playwright errors can include the navigated capability URL. Do not retain it.
+            message = re.sub(r'[a-f0-9]{64}', '[REDACTED]', str(error))
+            report['error'] = type(error).__name__ + ': ' + message
+        finally:
+            if target:
+                target.shutdown()
+                target.server_close()
+            if browser:
+                await browser.close()
+            if server and server.returncode is None:
+                server.terminate()
+                try:
+                    await asyncio.wait_for(server.wait(), timeout=5)
+                except asyncio.TimeoutError:
+                    server.kill()
+                    await server.wait()
+            report['passed'] = len(checks)
+            (OUT / 'results.json').write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
+            print(json.dumps(report, ensure_ascii=False, indent=2))
+    return 0 if report['status'] == 'passed' else 1
+
+
+if __name__ == '__main__':
+    sys.exit(asyncio.run(main()))
