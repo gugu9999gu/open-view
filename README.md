@@ -4,7 +4,7 @@
 
 **현재 상태: 정적 분석 + 명시적 Browser/Node 계측 + 실제 PostgreSQL 저장 추적 + 소스/HMR 이력 + 외부 Vite 프로젝트 연결 CLI·진단. 모든 함수 자동 계측은 아직 지원하지 않습니다.**
 
-R01–R12 실제 저장 경로 단계의 인수 기준은 12/12 통과했습니다. 전체 제품 완성률은 아닙니다. 외부 프로젝트 연결은 별도 O01–O10 중 9/10(90%)이며 실제 사용자 업무 프로젝트 검증 O10이 남았습니다. PR #4는 PR #3 기반의 Unreleased 변경이며 main 병합·배포·공개 npm 배포는 하지 않았습니다.
+R01–R12 실제 저장 경로 단계의 인수 기준은 12/12 통과했습니다. 전체 제품 완성률은 아닙니다. 외부 프로젝트 연결은 별도 O01–O10 중 9/10(90%)이며 실제 사용자 업무 프로젝트 검증 O10이 남았습니다. 실행 화면 자동 갱신 L01–L06도 6/6 통과했습니다. PR #5는 PR #4 기반의 Unreleased 변경이며 main 병합·배포·공개 npm 배포는 하지 않았습니다.
 
 ## 실행
 
@@ -59,7 +59,7 @@ export OPEN_VIEW_EXAMPLE_DATABASE_URL='postgres://USER:PASSWORD@127.0.0.1:5432/o
 npm run example:runtime
 ```
 
-터미널의 `loginUrl`과 `appUrl`을 열고 저장 버튼을 누른 뒤, Open View의 **실제 실행 → 새로고침**에서 확인합니다. 정상 커밋·롤백·커밋 후 오류·fixture 반환을 별도로 관측합니다. 이 명령은 예제 DB에 실제 레코드를 저장합니다. 일반 `npm start` 정적 분석은 여전히 대상 DB/파일을 변경하지 않습니다.
+터미널의 `loginUrl`과 `appUrl`을 열고 저장 버튼을 누른 뒤, Open View의 **실제 실행**에서 확인합니다. 화면은 조회 완료 후 약 1초 간격으로 자동 갱신하며 선택한 실행·과거 소스를 유지합니다. **자동 갱신 중지/시작**, 중지 상태의 **새로고침** 1회 조회를 지원합니다. 화면 갱신 중지는 앱·DB·수집기를 멈추지 않습니다. 정상 커밋·롤백·커밋 후 오류·fixture 반환을 별도로 관측합니다. 이 명령은 예제 DB에 실제 레코드를 저장합니다. 일반 `npm start` 정적 분석은 여전히 대상 DB/파일을 변경하지 않습니다.
 
 실행 상세의 소스 그래프에서 강조된 노드를 선택하면 실행 당시 원본 함수·파일·줄 번호를 확인합니다. Vite 코드를 바꾸면 새 build로 전체 reload되며 과거 trace는 보관된 옛 코드를 유지합니다. React 상태 보존형 HMR과 Node hot reload는 지원하지 않습니다.
 
@@ -69,6 +69,7 @@ npm run example:runtime
 
 ## 문서
 
+- [2026-11-03 검수·자동 갱신 계약과 검증](docs/RUNTIME-LIVE-REVIEW.ko.md)
 - [외부 프로젝트 연결 및 지원 범위](docs/PROJECT-CONNECTION.ko.md)
 - [상세 제품 설계](docs/PRODUCT-DESIGN.ko.md)
 - [구현 상태와 한계](docs/IMPLEMENTATION-STATUS.md)

@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased — runtime live refresh, 2026-11-03
+
+- Add single-flight OBSERVED polling, manual/automatic controls, cancellation, timeout and bounded retry. This is not push streaming.
+- Preserve selected trace and unchanged source DOM; restore source selection only by exact versioned identities.
+- Stop background view polling and terminal auth errors; invalidate pending reads before record deletion and never automatically retry DELETE.
+- Add 12 scheduler unit tests and 7 actual browser checks for refresh, selection, pause/manual/resume, view exit, deletion and real session revocation.
+- Code4cd93487 / CI41604678650: Node109, PG9 including parent, browser14+24+12, syntax50, production isolation and harness pass. Artifact source123 files match local bytes.
+- L01–L06:6/6. Existing R01–R12:12/12 and O01–O10:9/10 remain separate; O10 is still waiting for a user-selected business project.
+- PR #5 is stacked on PR #4; no main merge/deployment/npm publication. Package remains private0.2.0. See docs/RUNTIME-LIVE-REVIEW.ko.md.
+
 ## Unreleased — project connection, 2026-10-29
 
 - Add explicit init/doctor/dev CLI and a local package bin/exports; no registry publication.

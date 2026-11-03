@@ -1,8 +1,8 @@
-# 구현 상태 — 외부 프로젝트 연결 O01–O10
+# 구현 상태 — 실행 화면 자동 갱신 L01–L06
 
 ## 현재 구현
 
-인증·정적 분석·명시적 Browser/Node/PG 추적·소스/HMR 이력에 외부 프로젝트 연결 CLI와 Vite 어댑터를 추가했다. PR #4는 PR #3 기반이며 main 병합·배포·공개 npm 배포는 하지 않았다. 패키지 버전은 0.2.0으로 유지하고 이번 변경은 Unreleased로 기록한다.
+인증·정적 분석·명시적 Browser/Node/PG 추적·소스/HMR 이력에 외부 프로젝트 연결 CLI와 Vite 어댑터를 추가했다. 이번 PR #5는 PR #4 기반으로 실행 UI 자동 갱신·선택 보존을 추가했으며 main 병합·배포·공개 npm 배포는 하지 않았다. 패키지 버전은 0.2.0으로 유지하고 이번 변경은 Unreleased로 기록한다.
 
 | 영역 | 지원 범위 |
 |---|---|
@@ -12,12 +12,18 @@
 | 소스 매핑 | 선택된 inline callback의 파일 해시·AST 위치, scanner와 동일 sourceRef, project/build/definition 검증 |
 | 소스 보관 | 선택된 원본 코드만 bounded memory 보관, UI 인증 조회, 만료·삭제 시 현재 파일로 대체하지 않음 |
 | HMR | Vite 변경 시 새 build와 전체 reload. 보관된 과거 소스 유지. Node 모듈은 시작 시 고정 |
-| 실행 UI | OBSERVED 목록/상세/삭제, trace별 버전 고정 함수 그래프, 실행 노드 강조, 원본 코드/줄 보기 |
+| 실행 UI | OBSERVED 목록/상세/삭제, trace별 버전 고정 함수 그래프, 실행 노드 강조, 원본 코드/줄 보기, 약1초 주기 조회·중지/재개·선택 보존 |
 | 운영 빌드 | 공개 browser export의 기본 no-op, 개발에서만 alias. 검증 앱의 개발 표식·source map 부재 검사 |
 | 외부 프로젝트 | init 미리보기/배타적 JSON 생성, 비실행 doctor, --trust-project dev, 대상 설치 Vite/React 진단 |
 | 패키지 소비 | 로컬 npm pack/tarball 설치, 공개 bin/exports, 독립 root 브라우저·기존 API·원본/HMR 검사 |
 
-## 검증된 범위
+## 최신 검증
+
+코드 `4cd9348782101c7151c1c26004c7521de5d11bd8`, CI `41604678650` success: Node109/109, PG9/9(부모 포함), browser14+24+12, JavaScript50개, 운영 빌드 격리/npm ci/harness/추적 파일 무변경 통과. CI archive123개 파일을 로컬 구현과 바이트 대조했다. [검수와 고정 인수 기준](RUNTIME-LIVE-REVIEW.ko.md), [검증 JSON](validation-runtime-live.json).
+
+조회 완료 후 약1초 간격으로 갱신하며 선택 trace와 변경 없는 소스 DOM을 유지한다. 중지/수동1회/재개, 단일 실행·취소·backoff, 인증 실패 중단, 삭제 후 stale 결과 적용 방지를 포함한다. SSE/WebSocket push streaming이 아니다. 문서 후속 head는 해당 CI를 별도 확인한다.
+
+## 이전 검증된 범위 — 외부 연결 단계
 
 코드 `e7e408674a99611e25ea527db7099d2aa2e33e3d`, CI `40853572299`:
 
@@ -35,9 +41,11 @@
 
 [외부 연결 O01–O10](PROJECT-CONNECTION.ko.md)은 별도 **9/10 = 90%**. O10은 사용자 실제 업무 프로젝트 검증이며 생성한 소비 앱으로 대체하지 않는다.
 
+이번 [자동 갱신 L01–L06](RUNTIME-LIVE-REVIEW.ko.md)은 별도 **6/6 = 100%**. 기존 R/O와 합산한 전체 제품 완성률이 아니다.
+
 ## 아직 미구현 또는 제한되는 범위
 
-외부 프로젝트는 수동 패키지 설치/명시적 래퍼만 지원한다. 임의 프로젝트 무설정 자동 설치, 모든 함수 자동 계측, DOM 데이터 lineage, OpenTelemetry 수신, Supabase/Redis/Firestore/호스팅 커넥터, 지속 저장, VS Code/MCP, 운영 배포는 미구현이다. 실행 UI는 수동 새로고침이다. 소스 그래프는 해당 trace에서 확인된 정의만 표시하며 전체 STATIC 그래프의 라이브 재생은 아니다.
+외부 프로젝트는 수동 패키지 설치/명시적 래퍼만 지원한다. 임의 프로젝트 무설정 자동 설치, 모든 함수 자동 계측, DOM 데이터 lineage, OpenTelemetry 수신, Supabase/Redis/Firestore/호스팅 커넥터, 지속 저장, VS Code/MCP, 운영 배포는 미구현이다. 실행 UI는 제한된 주기 조회이며 push streaming은 미구현이다. 소스 그래프는 해당 trace에서 확인된 정의만 표시하며 전체 STATIC 그래프의 라이브 재생은 아니다.
 
 소스 매핑은 명시적 inline callback과 선택된 파일에 한정한다. HMR은 전체 reload라서 React 입력 상태가 초기화된다. Node hot reload는 없다. 개발용 Node loader는 상대/`node:` 정적 import만 지원한다. 상세: [소스 연결 계약](SOURCE-MAPPING.ko.md).
 

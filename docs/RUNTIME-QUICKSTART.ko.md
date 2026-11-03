@@ -8,7 +8,7 @@ Node 22 이상, Python 3.12(브라우저 테스트 시), 별도 로컬 PostgreSQ
 
 ```bash
 git fetch origin
-git switch feat/source-mapping-20261029
+git switch feat/live-runtime-review-20261103
 npm ci
 ```
 
@@ -40,7 +40,7 @@ PowerShell에서는 `export` 대신 `$env:OPEN_VIEW_EXAMPLE_DATABASE_URL='...'`�
 
 ## 3. 실행과 확인
 
-예제에서 저장을 누른 뒤 Open View의 **실제 실행 → 새로고침 → Save customer**를 선택한다.
+예제에서 저장을 누른 뒤 Open View의 **실제 실행 → Save customer**를 선택한다.
 
 | 시나리오 | DB 결과 | 화면에서 구분할 사실 |
 |---|---|---|
@@ -57,7 +57,7 @@ PowerShell에서는 `export` 대신 `$env:OPEN_VIEW_EXAMPLE_DATABASE_URL='...'`�
 
 실제 실행 상세의 **실행 소스 그래프**에서 `handleSaveCustomer` 또는 `createCustomer` 노드를 선택한다. 원본 상대 경로·줄 번호·파일 버전 해시·callback 코드가 나타난다. 미매핑 HTTP/DB span은 아래 표에 계속 남고 함수명으로 추측 연결하지 않는다.
 
-`examples/runtime-app/src/main.jsx`의 handler 내부 코드를 바꾸면 Vite가 페이지 전체를 다시 로드한다. 새 저장을 실행하고 Open View에서 새로고침한 뒤, 이전 trace와 새 trace를 각각 선택해 다른 버전의 코드를 확인한다. 예제 입력 상태는 reload 때 초기화된다. Node의 `service.mjs`는 자동 재시작하지 않으며 새 코드 실행에는 프로세스 재시작이 필요하다.
+`examples/runtime-app/src/main.jsx`의 handler 내부 코드를 바꾸면 Vite가 페이지 전체를 다시 로드한다. 새 저장을 실행하고 Open View의 자동 갱신으로 목록이 반영된 뒤, 이전 trace와 새 trace를 각각 선택해 다른 버전의 코드를 확인한다. 예제 입력 상태는 reload 때 초기화된다. Node의 `service.mjs`는 자동 재시작하지 않으며 새 코드 실행에는 프로세스 재시작이 필요하다.
 
 과거 원본은 30분/128버전/8 MiB 범위에서만 보관한다. 만료나 삭제 후에는 현재 파일로 대체하지 않고 미확인으로 표시한다. 삭제는 trace와 소스를 모두 지우므로 현재 로드된 코드의 연결도 재컴파일/재시작 전까지 사라질 수 있다.
 
@@ -80,6 +80,6 @@ npm run test:runtime-e2e
 
 ## 아직 지원하지 않는 범위
 
-현재 SDK는 명시적인 래퍼다. 선택한 inline callback 밖의 자동 함수 계측, 임의 프로젝트 자동 설치, 클라우드 DB 커넥터, 영구 저장은 미구현이다. 소스 그래프는 trace별 확인된 정의만 보여주며 전체 프로젝트 맵의 라이브 스트리밍은 아니다. 실행 조회는 수동 새로고침이다.
+현재 SDK는 명시적인 래퍼다. 선택한 inline callback 밖의 자동 함수 계측, 임의 프로젝트 자동 설치, 클라우드 DB 커넥터, 영구 저장은 미구현이다. 소스 그래프는 trace별 확인된 정의만 보여주며 전체 프로젝트 맵의 라이브 스트리밍은 아니다. 실행 조회는 약1초 간격의 자동 주기 조회다. 자동 갱신 중지/시작과 중지 상태의 수동 새로고침 1회를 지원하며 선택한 실행·소스를 유지한다. 중지는 앱·DB·수집기를 멈추지 않는다. [검수·동작·검증 범위](RUNTIME-LIVE-REVIEW.ko.md).
 
 span 종료 이벤트만 수집하므로 비정상 종료 직전의 손실을 완전히 탐지할 수 없다. OBSERVED는 신뢰한 개발용 Agent의 보고이지 위변조 방지 증명이 아니며, 완전성은 항상 best-effort다. 이름·본문·SQL·파라미터·결과 행·오류 원문은 이벤트에 포함하지 않지만 개발자가 직접 붙이는 span 이름에는 개인정보를 넣지 않아야 한다.

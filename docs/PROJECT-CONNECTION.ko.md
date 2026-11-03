@@ -29,7 +29,7 @@ Open View 저장소에서:
 
 ```bash
 git fetch origin
-git switch feat/project-connection-20261029
+git switch feat/live-runtime-review-20261103
 npm ci
 npm pack --ignore-scripts
 ```
@@ -122,7 +122,7 @@ CI에서는 source map을 비활성화한 소비 앱의 번들에서 개발 endp
 
 검증 버전: Node 22, Vite 7.3.7, React 19.3.1. CLI는 Vite7/React19 major를 허용하지만 모든 minor/플러그인 조합을 검증한 것은 아니다.
 Next/SSR/base 하위 경로/HTTPS/middlewareMode/외부 host/중복 alias는 지원하지 않는다.
-HMR은 전체 reload이며 React 상태 보존형 HMR/Node hot reload/실시간 자동 UI 갱신은 아직 없다.
+HMR은 전체 reload이며 React 상태 보존형 HMR/Node hot reload는 아직 없다. OBSERVED UI는 약1초 주기 자동 조회·중지/시작·선택 보존을 지원한다. push streaming이나 전체 프로젝트 맵의 라이브 재생은 아니다. [자동 갱신 검수](RUNTIME-LIVE-REVIEW.ko.md).
 Windows/macOS 및 사용자 실제 프로젝트는 아직 검증하지 않았다.
 
 ## 검증 재현
