@@ -41,7 +41,8 @@ async def main():
             browser = await playwright.chromium.launch(executable_path=os.environ.get('CHROMIUM_PATH'),headless=True)
             context = await browser.new_context(viewport={'width':1920,'height':1200})
             ui, page = await context.new_page(), await context.new_page()
-            errors = []
+            errors, runtime_requests = [], []
+            ui.on('request', lambda request: runtime_requests.append(request.url) if request.method == 'GET' and '/api/traces' in request.url else None)
             for target in [ui,page]: target.on('pageerror',lambda error: errors.append(str(error)))
             await ui.goto(ready['loginUrl'])
             await ui.wait_for_function("sessionStorage.getItem('open-view.ui-session.v1') !== null")
@@ -144,10 +145,51 @@ async def main():
             await expect(ui.locator('.source-node.observed.selected')).to_have_count(1)
             await expect(ui.get_by_role('region',name='실행 당시 소스')).to_contain_text('src/main.jsx:')
             report['checks'].append('OBSERVED graph highlights verified nodes and opens original code without DEMO/current-source substitution')
+            # No browser route interception or transport replacements: observe real UI GETs and actual saves.
+            selected_id = await ui.locator('.runtime-detail').get_attribute('data-selected')
+            selected_code = await ui.locator('.source-code').inner_text()
+            await ui.evaluate('window.__retainedSourceForTest = document.querySelector(".source-code")')
+            await page.get_by_label('예제 이름').fill(prefix+'-live')
+            await page.get_by_role('button',name='저장',exact=True).click(); actions+=1
+            await ui.bring_to_front()
+            await expect(ui.locator('.runtime-trace').filter(has_text='Save customer')).to_have_count(actions, timeout=10000)
+            assert await db_count(prefix+'-live') == 1
+            assert await ui.locator('.runtime-detail').get_attribute('data-selected') == selected_id
+            await expect(ui.locator('.source-code')).to_have_text(selected_code)
+            await ui.evaluate('window.__retainedSourceForTest = document.querySelector(".source-code")')
+            await asyncio.sleep(1.3)
+            assert await ui.evaluate('window.__retainedSourceForTest === document.querySelector(".source-code")')
+            report['checks'].append('automatic real HTTP refresh shows new saved action without resetting selected trace or source DOM')
+            await ui.get_by_role('button',name='자동 갱신 중지',exact=True).click()
+            await asyncio.sleep(.2)
+            stopped_count = len(runtime_requests)
+            paused_success = await page.locator('li[data-scenario="success"][data-ok="true"]').count()
+            await page.get_by_label('예제 이름').fill(prefix+'-paused')
+            await page.get_by_role('button',name='저장',exact=True).click(); actions+=1
+            await expect(page.locator('li[data-scenario="success"][data-ok="true"]')).to_have_count(paused_success+1)
+            await ui.bring_to_front(); await asyncio.sleep(1.3)
+            assert len(runtime_requests) == stopped_count
+            assert await db_count(prefix+'-paused') == 1
+            await expect(ui.locator('.runtime-trace').filter(has_text='Save customer')).to_have_count(actions-1)
+            report['checks'].append('pause stops UI GETs while the actual application and PostgreSQL save continue')
+            await ui.get_by_role('button',name='새로고침',exact=True).click()
+            await expect(ui.locator('.runtime-trace').filter(has_text='Save customer')).to_have_count(actions, timeout=10000)
+            await expect(ui.locator('.runtime-detail')).to_have_attribute('data-selected',selected_id)
+            await expect(ui.locator('.source-code')).to_have_text(selected_code)
+            await asyncio.sleep(.2); manual_count = len(runtime_requests); await asyncio.sleep(1.3)
+            assert len(runtime_requests) == manual_count
+            report['checks'].append('manual refresh remains one-shot while paused and preserves selected historical code')
+            await ui.get_by_role('button',name='자동 갱신 시작',exact=True).click()
+            await asyncio.sleep(.2); resumed_count = len(runtime_requests); await asyncio.sleep(1.3)
+            assert len(runtime_requests) > resumed_count
+            report['checks'].append('automatic polling resumes after explicit restart')
             await ui.screenshot(path=str(OUT/'observed-runtime.png'),full_page=True)
             await page.screenshot(path=str(OUT/'react-example.png'),full_page=True)
             await ui.locator('[data-view="graph"]').click()
             await expect(ui.locator('#inspector')).to_be_visible()
+            await asyncio.sleep(.2); inactive_count = len(runtime_requests); await asyncio.sleep(1.3)
+            assert len(runtime_requests) == inactive_count
+            report['checks'].append('leaving OBSERVED aborts and stops automatic UI requests')
             await ui.locator('[data-view="runtime"]').click()
             report['checks'].append('OBSERVED UI displays actual spans and hides unrelated DEMO/STATIC panels')
             assert not await context.cookies()
@@ -194,6 +236,26 @@ async def main():
             denied_source=await ui.evaluate("""async ({path,token}) => (await fetch(path,{headers:{Authorization:'Bearer '+token}})).status""",{'path':old_path,'token':bootstrap['relaySession']})
             assert denied_source==401
             report['checks'].append('source history is inaccessible with browser relay credentials')
+            async def accept_delete(dialog):
+                await dialog.accept()
+            ui.once('dialog', accept_delete)
+            await ui.get_by_role('button',name='보관 기록 삭제',exact=True).click()
+            await expect(ui.locator('.runtime-trace')).to_have_count(0)
+            await expect(ui.locator('.source-code')).to_have_count(0)
+            await expect(ui.locator('.runtime-detail')).to_contain_text('삭제했습니다')
+            await asyncio.sleep(1.3)
+            await expect(ui.locator('.runtime-trace')).to_have_count(0)
+            report['checks'].append('confirmed deletion clears traces and source without stale polling responses restoring them')
+            # Revoke the real session server-side; do not click logout or mock a 401 response.
+            session = await ui.evaluate('JSON.parse(sessionStorage.getItem("open-view.ui-session.v1"))')
+            revoked = await context.request.delete(ready['loginUrl'].split('/#')[0]+'/api/session', headers={'Authorization':'Bearer '+session['accessToken']})
+            assert revoked.status == 204
+            await expect(ui.locator('.runtime-sync')).to_contain_text('인증 필요', timeout=10000)
+            await asyncio.sleep(.2); denied_count = len(runtime_requests); await asyncio.sleep(1.3)
+            assert len(runtime_requests) == denied_count
+            await expect(ui.locator('.runtime-trace')).to_have_count(0)
+            await expect(ui.locator('.source-code')).to_have_count(0)
+            report['checks'].append('real session revocation stops retries and clears sensitive observed/source data')
             before_success=await page.locator('li[data-scenario="success"][data-ok="true"]').count()
             server.stdin.write(b'stop-collector\n');await server.stdin.drain()
             await ready_line('OPEN_VIEW_COLLECTOR_STOPPED')
