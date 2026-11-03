@@ -117,3 +117,31 @@ test('repeated stop is idempotent and a manual refresh after stop stays manual',
   loop.start(); await flush(); loop.stop(); loop.stop(); loop.refresh(); await flush();
   await timers.advance(1000); assert.equal(calls, 2); assert.equal(timers.size, 0);
 });
+
+
+test('stop and restart recover even when an aborted transport never settles', async () => {
+  const timers = clock(); let calls = 0;
+  const loop = createRefreshLoop({ ...settings, timers,
+    load: signal => {
+      calls++;
+      return calls === 1 ? new Promise(() => {}) : Promise.resolve();
+    },
+  });
+  loop.start(); await flush(); assert.equal(calls, 1);
+  loop.stop(); loop.start(); await flush(); await timers.advance(0);
+  assert.equal(calls, 2, 'new request must not wait for a transport that ignored AbortSignal');
+  loop.stop(); await flush(); assert.equal(timers.size, 0);
+});
+
+test('timeout retries when the underlying transport ignores AbortSignal', async () => {
+  const timers = clock(); let calls = 0, timeouts = 0;
+  const loop = createRefreshLoop({ ...settings, timers,
+    load: () => ++calls === 1 ? new Promise(() => {}) : Promise.resolve(),
+    onError: (_error, state) => { if (state.timedOut) timeouts++; return true; },
+  });
+  loop.start(); await flush(); await timers.advance(100);
+  assert.equal(timeouts, 1, 'deadline must settle scheduler independently of transport');
+  await timers.advance(10);
+  assert.equal(calls, 2, 'next request must run after deadline');
+  loop.stop(); await flush(); assert.equal(timers.size, 0);
+});
