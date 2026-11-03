@@ -1,0 +1,82 @@
+{
+  "scope": "runtime-live-refresh-L01-L06",
+  "date": "2026-11-03",
+  "status": "passed",
+  "codeHead": "4cd9348782101c7151c1c26004c7521de5d11bd8",
+  "sourceTree": "eeeb79210c449377bcd059361529b51a6faec897",
+  "ciRun": 41604678650,
+  "ciJob": 125811454830,
+  "ciConclusion": "success",
+  "testedPullRequestMerge": "4d1772de6c473e1719489460a664f5b3d474370a",
+  "artifact": {
+    "id": 13215923355,
+    "sha256": "44e63bdc2b726198704e59140c3de0936113851c0b2969da8138568f4e260aa0",
+    "sourceFilesCompared": 123,
+    "byteMismatches": 0
+  },
+  "checks": {
+    "node": {
+      "passed": 109,
+      "failed": 0,
+      "skipped": 0
+    },
+    "postgresql": {
+      "passed": 9,
+      "includesParentTest": true
+    },
+    "browserRegression": 14,
+    "runtimeBrowser": 24,
+    "externalConsumerBrowser": 12,
+    "javascriptModules": 50,
+    "productionIsolation": "passed",
+    "harnessVerify": "passed",
+    "trackedSourceUnchanged": true
+  },
+  "acceptance": {
+    "L01": "passed",
+    "L02": "passed",
+    "L03": "passed",
+    "L04": "passed",
+    "L05": "passed",
+    "L06": "passed"
+  },
+  "progress": {
+    "runtime": {
+      "passed": 12,
+      "total": 12
+    },
+    "externalConnection": {
+      "passed": 9,
+      "total": 10,
+      "remaining": "O10 user-selected real business project not specified"
+    },
+    "liveRefresh": {
+      "passed": 6,
+      "total": 6
+    },
+    "wholeProductPercent": null
+  },
+  "local": {
+    "newSchedulerTestsPassed": 12,
+    "availableNodeSubsetPassed": 94,
+    "fullSuitePassed": false,
+    "baseline": {
+      "passed": 93,
+      "failed": 4,
+      "reason": "Vite/React dependencies unavailable"
+    },
+    "browser": "ERR_BLOCKED_BY_ADMINISTRATOR",
+    "leernessSessionCommands": "not run; CLI unavailable"
+  },
+  "limitations": [
+    "not SSE/WebSocket streaming",
+    "not user business project O10",
+    "not Windows/macOS",
+    "no independent actual OS visibility/BFCache acceptance",
+    "no long-running benchmark",
+    "documentation follow-up HEAD requires its own CI check"
+  ],
+  "mainMerged": false,
+  "deployed": false,
+  "npmPublished": false
+}

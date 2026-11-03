@@ -15,9 +15,16 @@ doNotStore:
 <!-- leerness:managed -->
 # Current State
 
-Updated: 2026-10-29
+Updated: 2026-11-03
 
-## Now
+## Now — 2026-11-03
+- T-0010 완료: PR #4 최종 소스/CI 재검수, OBSERVED 자동 주기 조회·선택 보존·중지/재개·인증/삭제 경합 처리. PR #5는 PR #4 기반.
+- L01–L06 6/6, R01–R12 12/12, O01–O10 9/10. 각각 별도 기준이며 전체 제품 비율이 아니다. O10은 T-0009 waiting 유지.
+- code4cd93487 / CI41604678650: Node109, PG9, browser14+24+12, JS50, production/harness 통과. docs/validation-runtime-live.json.
+- main 미병합·배포/공개 npm publish 없음. 문서 후속 head CI 확인 후 실제 업무 프로젝트 O10이 다음 단계.
+- 로컬 full npm test는 의존성 누락, browser는 정책 차단. 실제 전체 통과 근거는 CI. 이번 세션 leerness CLI 명령은 미실행이며 상태/인계를 수동 기록.
+
+## Previous — 외부 연결 인계
 - 외부 프로젝트 연결 CLI(init/doctor/dev), 로컬 패키지 export, Vite 어댑터와 독립 소비 앱 검증 완료.
 - 새 고정 O01–O10 기준 9/10=90%. O10 사용자 실제 업무 프로젝트 검증은 대상 미지정으로 미실행.
 - 기존 R01–R12는 12/12 유지. 둘 다 전체 제품/공수 비율이 아니다.
@@ -25,7 +32,7 @@ Updated: 2026-10-29
 - PR #4는 PR #3 기반이며 main 미병합·배포/공개 npm 배포 없음. package 0.2.0 Unreleased.
 
 ## Next
-- 문서 후속 head CI/산출물 확인 후 PR #4 검토 상태로 전환한다.
+- 문서 후속 head CI/산출물 확인 후 PR #5 검토 상태로 전환한다.
 - 사용자가 지정한 업무 프로젝트에서 O10을 검증한다. 자동 생성 검증 앱으로 완료 처리하지 않는다.
 - 자동 계측·다중 프레임워크·별도 서버 연결·실시간 스트리밍·클라우드 커넥터는 별도 범위다.
 

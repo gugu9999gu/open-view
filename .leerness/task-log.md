@@ -62,3 +62,13 @@ doNotStore:
 - 실제 외부 소비 앱 screenshot에서 historical source와 미연결 경계 확인. 생성한 검증 앱이며 사용자 업무 프로젝트가 아니다.
 - 종료 코드 0: npm test97/97, check49, verify-claim T-0008 --run-tests --strict-claims, encoding check, leerness check, session close --no-suggest. 일반 문서 4개 수정 advisory는 이번 기능의 사용법/상태/변경 이력으로 요청 범위 내임을 확인.
 - PR #4는 PR #3 기반. main 병합·배포·공개 npm 배포 없음. 문서 후속 head도 동일 CI로 재검증한다. 별도 모델 검수는 실행하지 않았다.
+
+## 2026-11-03 — 검수 및 실행 화면 자동 갱신 인계
+- T-0010 완료: 최신 PR #4를 기준으로 소스/CI/산출물 검수 후 기존 runtime UI에 bounded polling을 추가. 신규12개 단위 및7개 실제 browser 검사를 추가했다.
+- 고정 기준 L01–L06 6/6. R01–R12 12/12와 O01–O10 9/10을 유지한다. T-0009/O10 실제 업무 프로젝트 대상 없음은 waiting이며 생성 검증 앱으로 대체하지 않았다.
+- code4cd9348782101c7151c1c26004c7521de5d11bd8, treeeeeb79210c449377bcd059361529b51a6faec897, CI41604678650 success. Node109/PG9/browser14+24+12/JS50 및 production/npm ci/harness/추적 파일 무변경 통과.
+- artifact13215923355 SHA25644e63bdc2b726198704e59140c3de0936113851c0b2969da8138568f4e260aa0 확인, source123파일 전부 로컬과 일치. 실행/과거 코드 스크린샷 확인. 상세: docs/RUNTIME-LIVE-REVIEW.ko.md 및 validation-runtime-live.json.
+- 로컬 baseline97개 중93통과/4개 의존성 누락, 신규12/12 및 실행 가능 부분94/94 통과. 로컬 browser 정책 차단 유지; 이를 전체 E2E 통과로 보고하지 않음.
+- 로컬 leerness CLI 없음: handoff/verify-claim/session close 실행 주장 없음. 상태/인계 수동 갱신, harness verify는 CI에서 통과. 별도 모델/에이전트 검수 없음. 활성 사용자 룰 없음.
+- PR #5는 feat/project-connection-20261029 기반. main 병합·배포·공개 npm publish 없음. package0.2.0/Unreleased 유지.
+- 다음 순서: 문서 후속 head의 CI/산출물 확인 → PR #5 검토 → 지정된 실제 업무 프로젝트의 O10 검증. push streaming/자동 계측/영구 저장/클라우드 확장은 별도 범위다.
