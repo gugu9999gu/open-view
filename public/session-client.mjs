@@ -33,17 +33,20 @@ export function createSessionClient({ baseUrl, storage, fetchImpl = globalThis.f
     async request(value, init = {}) {
       const url = endpoint(value); // Check before touching credentials or transport.
       if (!valid(session)) clear();
+      const requestSession = session; // Associate the response with the session actually sent.
       const headers = new Headers(init.headers);
       headers.delete('Authorization');
-      if (session) headers.set('Authorization', `Bearer ${session.accessToken}`);
+      if (requestSession) headers.set('Authorization', `Bearer ${requestSession.accessToken}`);
       const response = await fetchImpl(url, { ...init, headers,
         credentials: 'omit', mode: 'same-origin', redirect: 'error', cache: 'no-store',
       });
-      if (response.status === 401) clear();
+      if (response.status === 401 && session === requestSession) clear();
       return response;
     },
     async logout() {
-      try { await this.request('/api/session', { method: 'DELETE' }); } finally { clear(); }
+      const logoutSession = session;
+      try { await this.request('/api/session', { method: 'DELETE' }); }
+      finally { if (session === logoutSession) clear(); }
     },
     hasSession() { if (!valid(session)) clear(); return session !== null; },
   };
