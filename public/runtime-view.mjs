@@ -13,8 +13,15 @@ export function createRefreshLoop({ load, onError = () => true, intervalMs = 100
     const current = epoch, controller = new AbortController(); work = controller;
     let timedOut = false;
     const deadline = timers.setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
+    // Some transports ignore AbortSignal. Release the single-flight slot on abort,
+    // while Promise.race observes any eventual late rejection without applying it.
+    let onAbort;
+    const aborted = new Promise((_, reject) => {
+      onAbort = () => reject(new Error('Refresh aborted'));
+      controller.signal.addEventListener('abort', onAbort, { once: true });
+    });
     try {
-      await load(controller.signal);
+      await Promise.race([Promise.resolve(load(controller.signal)), aborted]);
       if (timedOut) throw new Error('Refresh timed out');
       if (current === epoch) failures = 0;
     } catch (error) {
@@ -24,6 +31,7 @@ export function createRefreshLoop({ load, onError = () => true, intervalMs = 100
         if (onError(error, { timedOut, retryMs }) === false) { automatic = false; requested = false; }
       }
     } finally {
+      controller.signal.removeEventListener('abort', onAbort);
       timers.clearTimeout(deadline); work = null;
       if (requested || automatic) {
         const delay = requested ? 0 : Math.min(maxDelayMs, intervalMs * 2 ** Math.min(Math.max(0, failures - 1), 16));
